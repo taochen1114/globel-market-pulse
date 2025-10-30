@@ -7,14 +7,19 @@ import LineChart from "../components/charts/LineChart";
 
 import marketData from "../data/market_data.json";
 import summary from "../data/summary.json";
+import { marketDescriptionsBySymbol } from "../data/market_descriptions";
 
-const markets = Object.entries(marketData.markets ?? {}).map(([symbol, info]) => ({
-  symbol,
-  name: info.name ?? symbol,
-  close: info.close ?? 0,
-  change: info.daily_change_pct ?? 0,
-  performance: info.performance ?? {}
-}));
+const markets = Object.entries(marketData.markets ?? {}).map(([symbol, info]) => {
+  const meta = marketDescriptionsBySymbol[symbol];
+  return {
+    symbol,
+    name: info.name ?? meta?.name ?? symbol,
+    close: info.close ?? 0,
+    change: info.daily_change_pct ?? 0,
+    performance: info.performance ?? {},
+    link: meta ? `/indices/${meta.slug}` : undefined
+  };
+});
 
 const globalLineData = markets.map((market) => ({
   指數: market.name,

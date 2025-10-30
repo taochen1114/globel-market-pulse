@@ -8,6 +8,7 @@ interface MarketPerformance {
   name: string;
   symbol: string;
   performance: Record<string, number | null | undefined>;
+  link?: string;
 }
 
 interface Props {
@@ -39,7 +40,11 @@ const { title, subtitle, periods, markets } = Astro.props as Props;
         {markets.map((market) => (
           <tr>
             <th scope="row">
-              <span class="name">{market.name}</span>
+              {market.link ? (
+                <a class="name-link" href={market.link}>{market.name}</a>
+              ) : (
+                <span class="name">{market.name}</span>
+              )}
               <span class="symbol">{market.symbol}</span>
             </th>
             {periods.map((period) => {
@@ -121,6 +126,26 @@ tbody tr:nth-child(odd) {
 tbody th {
   color: #f8fafc;
   font-weight: 600;
+}
+
+.name,
+.name-link {
+  display: inline-block;
+  font-size: 1rem;
+  color: #f8fafc;
+}
+
+.name-link {
+  color: #38bdf8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.name-link:hover,
+.name-link:focus-visible {
+  color: #0ea5e9;
+  text-decoration: underline;
+  outline: none;
 }
 
 .symbol {
