@@ -24,11 +24,25 @@ const links = [
     <meta name="description" content={description ?? "全球市場每日自動更新的觀察站"} />
   </head>
   <body>
-    <nav>
-      {links.map(link => (
-        <a href={link.href} class={current === link.id ? "active" : ""}>{link.label}</a>
-      ))}
-    </nav>
+    <header class="site-header">
+      <div class="nav-container">
+        <a class="site-title" href="/">Global Market Pulse</a>
+        <nav class="tab-nav" role="tablist" aria-label="主要導覽">
+          {links.map((link) => (
+            <a
+              href={link.href}
+              class="tab-link"
+              class:list={{ active: current === link.id }}
+              role="tab"
+              aria-selected={current === link.id}
+              aria-current={current === link.id ? "page" : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </header>
     <main>
       <slot />
     </main>
