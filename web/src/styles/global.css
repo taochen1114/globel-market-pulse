@@ -76,6 +76,12 @@ main {
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
+  width: 100%;
+}
+
+.tab-nav > main {
+  flex-basis: 100%;
+  width: 100%;
 }
 
 .tab-link {
