@@ -1,0 +1,82 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import LineChart from "../components/charts/LineChart";
+
+import marketData from "../data/market_data.json";
+import summary from "../data/summary.json";
+
+const markets = Object.entries(marketData.markets ?? {}).map(([symbol, info]) => ({
+  symbol,
+  name: info.name ?? symbol,
+  close: info.close ?? 0,
+  change: info.daily_change_pct ?? 0
+}));
+
+const globalLineData = markets.map((market) => ({
+  指數: market.name,
+  收盤: market.close,
+  漲跌百分比: market.change
+}));
+
+const forex = Object.entries(marketData.forex ?? {}).map(([pair, value]) => ({
+  產品: pair,
+  價格: value
+}));
+
+const commodities = Object.entries(marketData.commodities ?? {}).map(([name, value]) => ({
+  產品: name,
+  價格: value
+}));
+---
+
+<BaseLayout title="全球市場即時脈動" current="home">
+  <div class="hero">
+    <h1>Global Market Pulse</h1>
+    <p>
+      每日自動蒐集全球市場、匯率、利率與資金動態，搭配 AI 摘要提供快速洞察。資料更新日期：
+      <strong>{marketData.date}</strong>
+    </p>
+  </div>
+
+  <div class="grid two">
+    <MarketSummaryCard title="全球市場總結" description={summary.daily_summary} />
+    <MarketSummaryCard title="區域動能觀察" description={summary.regional_trends} />
+    <MarketSummaryCard title="資金流向焦點" description={summary.fund_flow} />
+  </div>
+
+  <section>
+    <SectionTitle title="全球主要指數" subtitle="以收盤價與日變動率快速掌握股市溫度" />
+    <LineChart
+      client:load
+      data={globalLineData}
+      xKey="指數"
+      series={[
+        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
+        { dataKey: "漲跌百分比", color: "#fbbf24", name: "漲跌%" }
+      ]}
+    />
+  </section>
+
+  <section class="grid two">
+    <div>
+      <SectionTitle title="主要匯率" subtitle="觀察美元走勢與跨市場影響" />
+      <LineChart
+        client:load
+        data={forex}
+        xKey="產品"
+        series={[{ dataKey: "價格", color: "#f472b6", name: "價格" }]}
+      />
+    </div>
+    <div>
+      <SectionTitle title="原物料行情" subtitle="掌握大宗商品對通膨的前瞻訊號" />
+      <LineChart
+        client:load
+        data={commodities}
+        xKey="產品"
+        series={[{ dataKey: "價格", color: "#34d399", name: "價格" }]}
+      />
+    </div>
+  </section>
+</BaseLayout>

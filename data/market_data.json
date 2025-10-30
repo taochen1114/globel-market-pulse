@@ -1,0 +1,35 @@
+{
+  "date": "2024-01-01",
+  "markets": {
+    "^TWII": {
+      "name": "TWSE Weighted Index",
+      "close": 17000.0,
+      "daily_change_pct": 0.5,
+      "volume": 2500000000.0
+    }
+  },
+  "forex": {
+    "USD/TWD": 32.1,
+    "EUR/USD": 1.08,
+    "JPY/USD": 0.0068
+  },
+  "commodities": {
+    "Gold": 1900.5,
+    "Oil": 75.2,
+    "Copper": 3.9
+  },
+  "rates": {
+    "2Y": 4.15,
+    "10Y": 4.01
+  },
+  "sentiment": {
+    "VIX": 18.2
+  },
+  "funds": {
+    "QQQ": {
+      "name": "Invesco QQQ",
+      "net_flow_estimate": 1200000000.0,
+      "volume": 34000000.0
+    }
+  }
+}

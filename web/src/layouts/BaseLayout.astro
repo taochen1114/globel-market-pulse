@@ -1,0 +1,36 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  current?: string;
+}
+const { title, description, current } = Astro.props;
+const links = [
+  { href: "/", label: "全球總覽", id: "home" },
+  { href: "/asia", label: "亞洲市場", id: "asia" },
+  { href: "/us", label: "美國市場", id: "us" },
+  { href: "/europe", label: "歐洲市場", id: "europe" },
+  { href: "/funds", label: "資金流向", id: "funds" }
+];
+---
+
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}｜Global Market Pulse</title>
+    <meta name="description" content={description ?? "全球市場每日自動更新的觀察站"} />
+  </head>
+  <body>
+    <nav>
+      {links.map(link => (
+        <a href={link.href} class={current === link.id ? "active" : ""}>{link.label}</a>
+      ))}
+    </nav>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import LineChart from "../components/charts/LineChart";
+
+import marketData from "../data/market_data.json";
+import summary from "../data/summary.json";
+
+const equitySymbols = ["^GSPC", "^IXIC", "^DJI"];
+const equityMarkets = equitySymbols
+  .map((symbol) => ({ symbol, ...(marketData.markets?.[symbol] ?? {}) }))
+  .map((item) => ({
+    symbol: item.symbol,
+    name: item.name ?? item.symbol,
+    close: item.close ?? null,
+    change: item.daily_change_pct ?? null
+  }));
+
+const vixValue = marketData.sentiment?.VIX ?? null;
+
+const rates = Object.entries(marketData.rates ?? {}).map(([label, value]) => ({
+  年期: label,
+  殖利率: value
+}));
+---
+
+<BaseLayout title="美國市場解析" current="us">
+  <div class="hero">
+    <h1>美股與債市焦點</h1>
+    <p>追蹤 S&P500、NASDAQ、道瓊與 VIX，同步掌握美債殖利率變化。</p>
+  </div>
+
+  <div class="grid two">
+    <MarketSummaryCard
+      title="AI 美股摘要"
+      description={summary.daily_summary}
+    />
+  </div>
+
+  <section>
+    <SectionTitle title="主要指數" subtitle="衡量美股風險偏好與波動" />
+    <LineChart
+      client:load
+      data={[
+        ...equityMarkets.map((item) => ({ 指標: item.name, 收盤: item.close ?? 0, 漲跌百分比: item.change ?? 0 })),
+        { 指標: "VIX 指數", 收盤: vixValue ?? 0, 漲跌百分比: 0 }
+      ]}
+      xKey="指標"
+      series={[
+        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
+        { dataKey: "漲跌百分比", color: "#f472b6", name: "漲跌%" }
+      ]}
+    />
+  </section>
+
+  <section>
+    <SectionTitle title="美債殖利率" subtitle="2 年期與 10 年期利差觀察" />
+    <LineChart
+      client:load
+      data={rates}
+      xKey="年期"
+      series={[{ dataKey: "殖利率", color: "#a855f7", name: "殖利率" }]}
+    />
+  </section>
+</BaseLayout>
