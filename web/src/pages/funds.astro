@@ -1,0 +1,49 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import BarChart from "../components/charts/BarChart";
+
+import marketData from "../data/market_data.json";
+import summary from "../data/summary.json";
+
+const fundFlows = Object.entries(marketData.funds ?? {}).map(([symbol, info]) => ({
+  代號: symbol,
+  名稱: info.name ?? symbol,
+  估算資金流: info.net_flow_estimate ?? 0,
+  成交量: info.volume ?? 0
+}));
+---
+
+<BaseLayout title="全球資金流向" current="funds">
+  <div class="hero">
+    <h1>ETF 與資金動態</h1>
+    <p>追蹤主題 ETF 與區域基金，掌握資金流向與交易活絡度。</p>
+  </div>
+
+  <div class="grid two">
+    <MarketSummaryCard title="AI 資金觀察" description={summary.fund_flow} />
+  </div>
+
+  <section>
+    <SectionTitle title="ETF 資金流向" subtitle="以資產規模與成交量評估資金動能" />
+    <BarChart
+      client:load
+      data={fundFlows}
+      xKey="名稱"
+      dataKey="估算資金流"
+      label="估算資金流"
+    />
+  </section>
+
+  <section>
+    <SectionTitle title="成交量熱度" subtitle="觀察 ETF 短期交投" />
+    <BarChart
+      client:load
+      data={fundFlows}
+      xKey="名稱"
+      dataKey="成交量"
+      label="成交量"
+    />
+  </section>
+</BaseLayout>

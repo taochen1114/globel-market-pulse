@@ -1,0 +1,58 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import LineChart from "../components/charts/LineChart";
+
+import marketData from "../data/market_data.json";
+import summary from "../data/summary.json";
+
+const symbols = ["^STOXX", "^FTSE"];
+const markets = symbols
+  .map((symbol) => ({ symbol, ...(marketData.markets?.[symbol] ?? {}) }))
+  .map((item) => ({
+    symbol: item.symbol,
+    name: item.name ?? item.symbol,
+    close: item.close ?? 0,
+    change: item.daily_change_pct ?? 0
+  }));
+
+const commodities = Object.entries(marketData.commodities ?? {}).map(([name, value]) => ({
+  品項: name,
+  價格: value
+}));
+---
+
+<BaseLayout title="歐洲市場焦點" current="europe">
+  <div class="hero">
+    <h1>歐洲市場與能源觀察</h1>
+    <p>追蹤 STOXX600、英國 FTSE 與能源相關商品，洞察歐洲景氣動能。</p>
+  </div>
+
+  <div class="grid two">
+    <MarketSummaryCard title="AI 歐洲洞察" description={summary.regional_trends} />
+  </div>
+
+  <section>
+    <SectionTitle title="歐洲主要指數" subtitle="掌握歐股表現與日變動率" />
+    <LineChart
+      client:load
+      data={markets.map((item) => ({ 指數: item.name, 收盤: item.close, 漲跌百分比: item.change }))}
+      xKey="指數"
+      series={[
+        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
+        { dataKey: "漲跌百分比", color: "#fbbf24", name: "漲跌%" }
+      ]}
+    />
+  </section>
+
+  <section>
+    <SectionTitle title="能源與金屬" subtitle="原油、黃金、銅價變化" />
+    <LineChart
+      client:load
+      data={commodities}
+      xKey="品項"
+      series={[{ dataKey: "價格", color: "#34d399", name: "價格" }]}
+    />
+  </section>
+</BaseLayout>

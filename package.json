@@ -1,0 +1,12 @@
+{
+  "name": "global-market-pulse",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "web"
+  ],
+  "scripts": {
+    "build": "npm --workspace web run build",
+    "dev": "npm --workspace web run dev"
+  }
+}

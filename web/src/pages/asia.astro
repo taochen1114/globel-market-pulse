@@ -1,0 +1,49 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SectionTitle from "../components/SectionTitle.astro";
+import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import LineChart from "../components/charts/LineChart";
+
+import marketData from "../data/market_data.json";
+import summary from "../data/summary.json";
+
+const symbols = ["^TWII", "^HSI", "^N225"];
+const markets = symbols
+  .map((symbol) => ({ symbol, ...(marketData.markets?.[symbol] ?? {}) }))
+  .filter((item) => Object.keys(item).length > 1);
+
+const chartData = markets.map((item) => ({
+  指數: item.name ?? item.symbol,
+  收盤: item.close ?? 0,
+  漲跌百分比: item.daily_change_pct ?? 0,
+  量能: item.volume ?? 0
+}));
+---
+
+<BaseLayout title="亞洲市場動態" current="asia">
+  <div class="hero">
+    <h1>亞洲市場速覽</h1>
+    <p>聚焦台股、港股與日股表現，快速掌握區域市場脈動。</p>
+  </div>
+
+  <div class="grid two">
+    <MarketSummaryCard
+      title="AI 區域觀察"
+      description={summary.regional_trends}
+    />
+  </div>
+
+  <section>
+    <SectionTitle title="主要指數表現" subtitle="觀察亞洲股市收盤、日變動與量能" />
+    <LineChart
+      client:load
+      data={chartData}
+      xKey="指數"
+      series={[
+        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
+        { dataKey: "漲跌百分比", color: "#fbbf24", name: "漲跌%" },
+        { dataKey: "量能", color: "#a855f7", name: "量能" }
+      ]}
+    />
+  </section>
+</BaseLayout>

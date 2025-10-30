@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+node_modules/
+web/node_modules/
+web/dist/
+web/.astro/
+*.log
+.DS_Store
+coverage/
