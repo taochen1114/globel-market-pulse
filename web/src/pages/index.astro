@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
 import SectionTitle from "../components/SectionTitle.astro";
+import PerformanceTable from "../components/PerformanceTable.astro";
 import LineChart from "../components/charts/LineChart";
 
 import marketData from "../data/market_data.json";
@@ -11,7 +12,8 @@ const markets = Object.entries(marketData.markets ?? {}).map(([symbol, info]) =>
   symbol,
   name: info.name ?? symbol,
   close: info.close ?? 0,
-  change: info.daily_change_pct ?? 0
+  change: info.daily_change_pct ?? 0,
+  performance: info.performance ?? {}
 }));
 
 const globalLineData = markets.map((market) => ({
@@ -29,6 +31,14 @@ const commodities = Object.entries(marketData.commodities ?? {}).map(([name, val
   產品: name,
   價格: value
 }));
+
+const periodOrder = ["1m", "2m", "3m", "6m", "1y", "3y", "5y"];
+const performancePeriods = periodOrder
+  .filter((key) => key in (marketData.performance_periods ?? {}))
+  .map((key) => ({
+    key,
+    label: (marketData.performance_periods as Record<string, string>)[key]
+  }));
 ---
 
 <BaseLayout title="全球市場即時脈動" current="home">
@@ -78,5 +88,14 @@ const commodities = Object.entries(marketData.commodities ?? {}).map(([name, val
         series={[{ dataKey: "價格", color: "#34d399", name: "價格" }]}
       />
     </div>
+  </section>
+
+  <section>
+    <PerformanceTable
+      title="多週期市場表現"
+      subtitle="近1個月至5年的報酬率比較，快速掌握長短期趨勢"
+      periods={performancePeriods}
+      markets={markets}
+    />
   </section>
 </BaseLayout>

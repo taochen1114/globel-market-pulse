@@ -1,35 +1,173 @@
 {
-  "date": "2024-01-01",
-  "markets": {
-    "^TWII": {
-      "name": "TWSE Weighted Index",
-      "close": 17000.0,
-      "daily_change_pct": 0.5,
-      "volume": 2500000000.0
-    }
-  },
-  "forex": {
-    "USD/TWD": 32.1,
-    "EUR/USD": 1.08,
-    "JPY/USD": 0.0068
-  },
   "commodities": {
-    "Gold": 1900.5,
-    "Oil": 75.2,
-    "Copper": 3.9
+    "Copper": null,
+    "Gold": null,
+    "Oil": null
   },
-  "rates": {
-    "2Y": 4.15,
-    "10Y": 4.01
-  },
-  "sentiment": {
-    "VIX": 18.2
+  "date": "2025-10-30",
+  "forex": {
+    "EUR/USD": null,
+    "JPY/USD": null,
+    "USD/TWD": null
   },
   "funds": {
+    "EFA": {
+      "name": "iShares MSCI EAFE",
+      "net_flow_estimate": null,
+      "volume": null
+    },
+    "EWT": {
+      "name": "iShares MSCI Taiwan",
+      "net_flow_estimate": null,
+      "volume": null
+    },
     "QQQ": {
       "name": "Invesco QQQ",
-      "net_flow_estimate": 1200000000.0,
-      "volume": 34000000.0
+      "net_flow_estimate": null,
+      "volume": null
+    },
+    "SPY": {
+      "name": "SPDR S&P 500",
+      "net_flow_estimate": null,
+      "volume": null
     }
+  },
+  "markets": {
+    "^DJI": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "Dow Jones Industrial",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^FTSE": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "FTSE 100",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^GSPC": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "S&P 500",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^HSI": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "Hang Seng Index",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^IXIC": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "NASDAQ Composite",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^N225": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "Nikkei 225",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^STOXX": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "STOXX Europe 600",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    },
+    "^TWII": {
+      "close": null,
+      "daily_change_pct": null,
+      "name": "TWSE Weighted Index",
+      "performance": {
+        "1m": null,
+        "1y": null,
+        "2m": null,
+        "3m": null,
+        "3y": null,
+        "5y": null,
+        "6m": null
+      },
+      "volume": null
+    }
+  },
+  "performance_periods": {
+    "1m": "近1個月",
+    "1y": "近1年",
+    "2m": "近2個月",
+    "3m": "近3個月",
+    "3y": "近3年",
+    "5y": "近5年",
+    "6m": "近6個月"
+  },
+  "rates": {
+    "10Y": null,
+    "2Y": null
+  },
+  "sentiment": {
+    "VIX": null
   }
 }

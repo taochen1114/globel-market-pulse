@@ -5,6 +5,7 @@ node_modules/
 web/node_modules/
 web/dist/
 web/.astro/
+web/src/env.d.ts
 *.log
 .DS_Store
 coverage/
