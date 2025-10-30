@@ -1,0 +1,160 @@
+---
+interface Period {
+  key: string;
+  label: string;
+}
+
+interface MarketPerformance {
+  name: string;
+  symbol: string;
+  performance: Record<string, number | null | undefined>;
+}
+
+interface Props {
+  title: string;
+  subtitle: string;
+  periods: Period[];
+  markets: MarketPerformance[];
+}
+
+const { title, subtitle, periods, markets } = Astro.props as Props;
+---
+
+<section class="performance">
+  <div class="header">
+    <h2>{title}</h2>
+    <p>{subtitle}</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>市場指數</th>
+          {periods.map((period) => (
+            <th scope="col">{period.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {markets.map((market) => (
+          <tr>
+            <th scope="row">
+              <span class="name">{market.name}</span>
+              <span class="symbol">{market.symbol}</span>
+            </th>
+            {periods.map((period) => {
+              const value = market.performance?.[period.key];
+              const formatted =
+                typeof value === "number"
+                  ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
+                  : "—";
+              const trend = typeof value === "number" ? (value >= 0 ? "up" : "down") : "neutral";
+              return (
+                <td class={`value ${trend}`}>
+                  <span>{formatted}</span>
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style>
+.performance {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 18px;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #f8fafc;
+}
+
+.header p {
+  margin: 0.35rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+thead th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(51, 65, 85, 0.35);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+tbody tr:nth-child(odd) {
+  background: rgba(15, 23, 42, 0.2);
+}
+
+tbody th {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.symbol {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+td.value {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  color: #f8fafc;
+}
+
+td.value.up {
+  color: #4ade80;
+}
+
+td.value.down {
+  color: #f87171;
+}
+
+td.value.neutral {
+  color: #cbd5f5;
+}
+
+@media (max-width: 768px) {
+  .performance {
+    padding: 1rem;
+  }
+
+  table {
+    min-width: 520px;
+  }
+}
+</style>

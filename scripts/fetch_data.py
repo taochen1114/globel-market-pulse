@@ -13,6 +13,26 @@ from utils import sync_output, today_iso
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
 
+PERFORMANCE_OFFSETS = {
+    "1m": pd.DateOffset(months=1),
+    "2m": pd.DateOffset(months=2),
+    "3m": pd.DateOffset(months=3),
+    "6m": pd.DateOffset(months=6),
+    "1y": pd.DateOffset(years=1),
+    "3y": pd.DateOffset(years=3),
+    "5y": pd.DateOffset(years=5),
+}
+
+PERFORMANCE_LABELS = {
+    "1m": "近1個月",
+    "2m": "近2個月",
+    "3m": "近3個月",
+    "6m": "近6個月",
+    "1y": "近1年",
+    "3y": "近3年",
+    "5y": "近5年",
+}
+
 
 @dataclass
 class TickerSpec:
@@ -56,8 +76,19 @@ def fetch_equity_markets() -> Dict[str, Dict[str, Optional[float]]]:
 
     for spec in specs:
         ticker = yf.Ticker(spec.symbol)
-        close_price = latest_close(ticker)
-        change_pct = daily_change_percent(ticker)
+        try:
+            close_price = latest_close(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and continue with empty data
+            LOGGER.warning("Unable to fetch latest close for %s: %s", spec.symbol, exc)
+            close_price = None
+
+        try:
+            change_pct = daily_change_percent(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and continue with empty data
+            LOGGER.warning("Unable to compute daily change for %s: %s", spec.symbol, exc)
+            change_pct = None
+
+        performance = historical_performance(ticker)
         volume = None
         try:
             history = ticker.history(period="5d", interval="1d")
@@ -71,9 +102,61 @@ def fetch_equity_markets() -> Dict[str, Dict[str, Optional[float]]]:
             "close": close_price,
             "daily_change_pct": change_pct,
             "volume": volume,
+            "performance": performance,
         }
 
     return result
+
+
+def _first_valid_close(history: pd.DataFrame, threshold: pd.Timestamp) -> Optional[float]:
+    """Return the earliest available close price after the threshold date."""
+
+    if history.empty or "Close" not in history:
+        return None
+
+    filtered = history.loc[history.index >= threshold]
+    if filtered.empty:
+        return None
+
+    close_series = filtered["Close"].dropna()
+    if close_series.empty:
+        return None
+
+    return float(close_series.iloc[0])
+
+
+def historical_performance(ticker: yf.Ticker) -> Dict[str, Optional[float]]:
+    """Compute multi-period percentage changes for the provided ticker."""
+
+    try:
+        history = ticker.history(period="5y", interval="1d")
+    except Exception as exc:  # noqa: BLE001 - failure should not break pipeline
+        LOGGER.warning("Unable to fetch historical data for %s: %s", ticker.ticker, exc)
+        return {period: None for period in PERFORMANCE_OFFSETS}
+
+    if history.empty or "Close" not in history:
+        return {period: None for period in PERFORMANCE_OFFSETS}
+
+    close_series = history["Close"].dropna()
+    if close_series.empty:
+        return {period: None for period in PERFORMANCE_OFFSETS}
+
+    latest_close = float(close_series.iloc[-1])
+    latest_date = close_series.index[-1]
+
+    performance: Dict[str, Optional[float]] = {}
+    for period, offset in PERFORMANCE_OFFSETS.items():
+        threshold_date = latest_date - offset
+        starting_close = _first_valid_close(history, threshold_date)
+
+        if starting_close is None or starting_close == 0:
+            performance[period] = None
+            continue
+
+        change = (latest_close - starting_close) / starting_close * 100
+        performance[period] = float(change)
+
+    return performance
 
 
 def fetch_forex() -> Dict[str, Optional[float]]:
@@ -85,7 +168,11 @@ def fetch_forex() -> Dict[str, Optional[float]]:
     forex: Dict[str, Optional[float]] = {}
     for label, symbol in tickers.items():
         ticker = yf.Ticker(symbol)
-        forex[label] = latest_close(ticker)
+        try:
+            forex[label] = latest_close(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and continue
+            LOGGER.warning("Unable to fetch forex rate for %s: %s", symbol, exc)
+            forex[label] = None
     return forex
 
 
@@ -98,7 +185,11 @@ def fetch_commodities() -> Dict[str, Optional[float]]:
     commodities: Dict[str, Optional[float]] = {}
     for label, symbol in tickers.items():
         ticker = yf.Ticker(symbol)
-        commodities[label] = latest_close(ticker)
+        try:
+            commodities[label] = latest_close(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and continue
+            LOGGER.warning("Unable to fetch commodity price for %s: %s", symbol, exc)
+            commodities[label] = None
     return commodities
 
 
@@ -136,7 +227,11 @@ def fetch_rates() -> Dict[str, Optional[float]]:
 
 def fetch_sentiment() -> Dict[str, Optional[float]]:
     ticker = yf.Ticker("^VIX")
-    return {"VIX": latest_close(ticker)}
+    try:
+        return {"VIX": latest_close(ticker)}
+    except Exception as exc:  # noqa: BLE001 - log and continue
+        LOGGER.warning("Unable to fetch sentiment index: %s", exc)
+        return {"VIX": None}
 
 
 def fetch_etf_flows() -> Dict[str, Dict[str, Optional[float]]]:
@@ -149,7 +244,11 @@ def fetch_etf_flows() -> Dict[str, Dict[str, Optional[float]]]:
     flows: Dict[str, Dict[str, Optional[float]]] = {}
     for symbol, name in etfs.items():
         ticker = yf.Ticker(symbol)
-        history = ticker.history(period="5d", interval="1d")
+        try:
+            history = ticker.history(period="5d", interval="1d")
+        except Exception as exc:  # noqa: BLE001 - optional data
+            LOGGER.warning("Unable to fetch ETF history for %s: %s", symbol, exc)
+            history = pd.DataFrame()
         if history.empty:
             flows[symbol] = {"name": name, "net_flow_estimate": None, "volume": None}
             continue
@@ -179,6 +278,7 @@ def build_payload() -> Dict[str, object]:
         "rates": fetch_rates(),
         "sentiment": fetch_sentiment(),
         "funds": fetch_etf_flows(),
+        "performance_periods": PERFORMANCE_LABELS,
     }
 
 
