@@ -102,17 +102,33 @@ def fetch_commodities() -> Dict[str, Optional[float]]:
     return commodities
 
 
+def _first_available_close(symbols: list[str]) -> tuple[Optional[float], Optional[str]]:
+    """Return the first non-null close price and symbol from the candidates."""
+
+    for candidate in symbols:
+        ticker = yf.Ticker(candidate)
+        try:
+            value = latest_close(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and try next
+            LOGGER.warning("Failed to fetch rate for %s: %s", candidate, exc)
+            continue
+
+        if value is not None:
+            return value, candidate
+
+    return None, None
+
+
 def fetch_rates() -> Dict[str, Optional[float]]:
-    tickers = {
-        "2Y": "^UST2Y",
-        "10Y": "^TNX",
+    candidates = {
+        "2Y": ["^UST2Y", "^US2Y"],
+        "10Y": ["^TNX", "^US10Y"],
     }
     rates: Dict[str, Optional[float]] = {}
-    for label, symbol in tickers.items():
-        ticker = yf.Ticker(symbol)
-        value = latest_close(ticker)
-        if value is not None and label == "10Y":
-            # Yahoo Finance stores the 10Y yield as percentage * 10.
+    for label, symbols in candidates.items():
+        value, symbol = _first_available_close(symbols)
+        if value is not None and label == "10Y" and symbol == "^TNX":
+            # Yahoo Finance stores the 10Y yield as percentage * 10 for ^TNX.
             value = round(value / 10, 4)
         rates[label] = value
     return rates
