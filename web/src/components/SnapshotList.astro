@@ -1,0 +1,197 @@
+---
+interface SnapshotItem {
+  name: string;
+  symbol: string;
+  price: number | null | undefined;
+  changePct: number | null | undefined;
+  link?: string;
+  secondary?: string;
+}
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  items: SnapshotItem[];
+}
+
+const { title, subtitle, items } = Astro.props as Props;
+const priceFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 4,
+});
+const changeFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+function formatPrice(value: SnapshotItem["price"]) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  return priceFormatter.format(value);
+}
+
+function formatChange(value: SnapshotItem["changePct"]) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${changeFormatter.format(value)}%`;
+}
+---
+
+<section class="snapshot-list">
+  <div class="header">
+    <h3>{title}</h3>
+    {subtitle && <p>{subtitle}</p>}
+  </div>
+  <ul>
+    {items.map((item) => {
+      const trend = typeof item.changePct === "number" ? (item.changePct > 0 ? "up" : item.changePct < 0 ? "down" : "neutral") : "neutral";
+      const content = (
+        <>
+          <div class="info">
+            <span class="name">{item.name}</span>
+            <span class="symbol">{item.symbol}</span>
+            {item.secondary && <span class="secondary">{item.secondary}</span>}
+          </div>
+          <div class="value">
+            <span class="price">{formatPrice(item.price)}</span>
+            <span class={`change ${trend}`}>{formatChange(item.changePct)}</span>
+          </div>
+        </>
+      );
+      return (
+        <li>
+          {item.link ? (
+            <a class="row" href={item.link}>
+              {content}
+            </a>
+          ) : (
+            <div class="row" role="group">
+              {content}
+            </div>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+</section>
+
+<style>
+.snapshot-list {
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #f8fafc;
+}
+
+.header p {
+  margin: 0.35rem 0 0;
+  color: #cbd5f5;
+  font-size: 0.95rem;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+li {
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  border-color: #38bdf8;
+  transform: translateX(2px);
+  outline: none;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.info .name {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.info .symbol,
+.info .secondary {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.info .secondary {
+  font-family: inherit;
+}
+
+.value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.value .price {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.value .change {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+}
+
+.value .change.up {
+  color: #4ade80;
+}
+
+.value .change.down {
+  color: #f87171;
+}
+
+.value .change.neutral {
+  color: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .snapshot-list {
+    padding: 1rem;
+  }
+
+  .row {
+    padding: 0.75rem 0.85rem;
+  }
+}
+</style>

@@ -1,173 +1,503 @@
 {
-  "commodities": {
-    "Copper": 5.055500030517578,
-    "Gold": 4000.0,
-    "Oil": 60.91999816894531
-  },
   "date": "2025-11-04",
-  "forex": {
-    "EUR/USD": 1.1507480144500732,
-    "JPY/USD": 154.4029998779297,
-    "USD/TWD": 30.902000427246094
-  },
-  "funds": {
-    "EFA": {
-      "name": "iShares MSCI EAFE",
-      "net_flow_estimate": null,
-      "volume": 9849634.0
+  "highlights": [
+    {
+      "symbol": "DX-Y.NYB",
+      "name": "美元指數 (DXY)",
+      "close": 104.32,
+      "daily_change_pct": -0.18,
+      "history": "macro/dxy",
+      "label": "美元"
     },
-    "EWT": {
-      "name": "iShares MSCI Taiwan",
-      "net_flow_estimate": null,
-      "volume": 1754348.0
+    {
+      "symbol": "GC=F",
+      "name": "COMEX 黃金",
+      "close": 4000,
+      "daily_change_pct": 0,
+      "history": "commodities/gold",
+      "label": "黃金"
     },
-    "QQQ": {
-      "name": "Invesco QQQ",
-      "net_flow_estimate": null,
-      "volume": 36696964.0
+    {
+      "symbol": "CL=F",
+      "name": "NYMEX 原油",
+      "close": 60.91999816894531,
+      "daily_change_pct": -1.21,
+      "history": "commodities/wti",
+      "label": "原油"
     },
-    "SPY": {
-      "name": "SPDR S&P 500",
-      "net_flow_estimate": null,
-      "volume": 51527208.0
-    }
-  },
-  "markets": {
-    "^DJI": {
-      "close": 47336.6796875,
-      "daily_change_pct": -0.4755629781140833,
-      "name": "Dow Jones Industrial",
-      "performance": {
-        "1m": 1.236996788670456,
-        "1y": 13.260272661559721,
-        "2m": 4.562388071549648,
-        "3m": 7.160467232827269,
-        "3y": 47.921345845865396,
-        "5y": 69.98440594972564,
-        "6m": 14.842371413245994
-      },
-      "volume": 571740460.0
-    },
-    "^FTSE": {
-      "close": 9701.3701171875,
-      "daily_change_pct": -0.16393121361055182,
-      "name": "FTSE 100",
-      "performance": {
-        "1m": 2.213293403673245,
-        "1y": 18.537790934585875,
-        "2m": 5.702441895701678,
-        "3m": 6.277952354344464,
-        "3y": 34.954928433847726,
-        "5y": 67.64654808568059,
-        "6m": 12.840738786183778
-      },
-      "volume": 0.0
-    },
-    "^GSPC": {
+    {
+      "symbol": "^GSPC",
+      "name": "S&P 500",
+      "region": "美國",
       "close": 6851.97021484375,
       "daily_change_pct": 0.17207127269923828,
-      "name": "S&P 500",
+      "volume": 3696845000,
       "performance": {
         "1m": 2.0277610674121114,
-        "1y": 19.942974065157333,
         "2m": 6.260765910376135,
         "3m": 8.247001997960925,
+        "6m": 21.26565570726111,
+        "1y": 19.942974065157333,
         "3y": 84.19819975087731,
-        "5y": 98.98619785555216,
-        "6m": 21.26565570726111
+        "5y": 98.98619785555216
       },
-      "volume": 3696845000.0
+      "history": "markets/gspc",
+      "label": "美國"
     },
-    "^HSI": {
-      "close": 26158.359375,
-      "daily_change_pct": 0.9715998810332018,
-      "name": "Hang Seng Index",
-      "performance": {
-        "1m": -3.6202182892226777,
-        "1y": 27.182859047515944,
-        "2m": 3.2155461890856203,
-        "3m": 5.761065283081505,
-        "3y": 70.52952200706434,
-        "5y": 4.886295414366916,
-        "6m": 15.424670275062939
-      },
-      "volume": 0.0
-    },
-    "^IXIC": {
-      "close": 23834.72265625,
-      "daily_change_pct": 0.46264235814403015,
-      "name": "NASDAQ Composite",
-      "performance": {
-        "1m": 4.627696664697867,
-        "1y": 31.104225866579288,
-        "2m": 10.87087863017517,
-        "3m": 13.209832094137047,
-        "3y": 130.44435785240367,
-        "5y": 105.63518670845522,
-        "6m": 33.570958153404504
-      },
-      "volume": 9362476000.0
-    },
-    "^N225": {
-      "close": 52462.73828125,
-      "daily_change_pct": 0.09806739849282677,
-      "name": "Nikkei 225",
-      "performance": {
-        "1m": 9.423295476997087,
-        "1y": 36.35575508138727,
-        "2m": 23.2090328661428,
-        "3m": 30.210543124144944,
-        "3y": 92.87955630895199,
-        "5y": 121.4063220462847,
-        "6m": 42.64062815799281
-      },
-      "volume": 0.0
-    },
-    "^STOXX": {
-      "close": 572.280029296875,
-      "daily_change_pct": 0.0681974922533412,
-      "name": "STOXX Europe 600",
-      "performance": {
-        "1m": 0.3208023579074951,
-        "1y": 12.385860234512078,
-        "2m": 4.663667038606258,
-        "3m": 5.860165582989639,
-        "3y": 39.733865548585435,
-        "5y": 60.74829740703886,
-        "6m": 6.5083530731191646
-      },
-      "volume": 0.0
-    },
-    "^TWII": {
+    {
+      "symbol": "^TWII",
+      "name": "TWSE Weighted Index",
+      "region": "台灣",
       "close": 28462.1796875,
       "daily_change_pct": 0.8104956772433974,
-      "name": "TWSE Weighted Index",
+      "volume": 0,
       "performance": {
         "1m": 4.594417175703631,
-        "1y": 23.935099351265663,
         "2m": 17.710325528512207,
         "3m": 21.74281790911408,
+        "6m": 38.61682766424573,
+        "1y": 23.935099351265663,
         "3y": 118.49092958120677,
-        "5y": 121.18744180081097,
-        "6m": 38.61682766424573
+        "5y": 121.18744180081097
       },
-      "volume": 0.0
+      "history": "markets/twii",
+      "label": "台灣"
+    },
+    {
+      "symbol": "^HSI",
+      "name": "Hang Seng Index",
+      "region": "香港",
+      "close": 26158.359375,
+      "daily_change_pct": 0.9715998810332018,
+      "volume": 0,
+      "performance": {
+        "1m": -3.6202182892226777,
+        "2m": 3.2155461890856203,
+        "3m": 5.761065283081505,
+        "6m": 15.424670275062939,
+        "1y": 27.182859047515944,
+        "3y": 70.52952200706434,
+        "5y": 4.886295414366916
+      },
+      "history": "markets/hsi",
+      "label": "香港"
+    },
+    {
+      "symbol": "^N225",
+      "name": "Nikkei 225",
+      "region": "日本",
+      "close": 52462.73828125,
+      "daily_change_pct": 0.09806739849282677,
+      "volume": 0,
+      "performance": {
+        "1m": 9.423295476997087,
+        "2m": 23.2090328661428,
+        "3m": 30.210543124144944,
+        "6m": 42.64062815799281,
+        "1y": 36.35575508138727,
+        "3y": 92.87955630895199,
+        "5y": 121.4063220462847
+      },
+      "history": "markets/n225",
+      "label": "日本"
+    },
+    {
+      "symbol": "^STOXX",
+      "name": "STOXX Europe 600",
+      "region": "歐洲",
+      "close": 572.280029296875,
+      "daily_change_pct": 0.0681974922533412,
+      "volume": 0,
+      "performance": {
+        "1m": 0.3208023579074951,
+        "2m": 4.663667038606258,
+        "3m": 5.860165582989639,
+        "6m": 6.5083530731191646,
+        "1y": 12.385860234512078,
+        "3y": 39.733865548585435,
+        "5y": 60.74829740703886
+      },
+      "history": "markets/stoxx",
+      "label": "歐洲"
     }
-  },
-  "performance_periods": {
-    "1m": "近1個月",
-    "1y": "近1年",
-    "2m": "近2個月",
-    "3m": "近3個月",
-    "3y": "近3年",
-    "5y": "近5年",
-    "6m": "近6個月"
-  },
+  ],
+  "macro": [
+    {
+      "symbol": "DX-Y.NYB",
+      "name": "美元指數 (DXY)",
+      "close": 104.32,
+      "daily_change_pct": -0.18,
+      "history": "macro/dxy"
+    }
+  ],
+  "markets": [
+    {
+      "symbol": "^GSPC",
+      "name": "S&P 500",
+      "region": "美國",
+      "close": 6851.97021484375,
+      "daily_change_pct": 0.17207127269923828,
+      "volume": 3696845000,
+      "performance": {
+        "1m": 2.0277610674121114,
+        "2m": 6.260765910376135,
+        "3m": 8.247001997960925,
+        "6m": 21.26565570726111,
+        "1y": 19.942974065157333,
+        "3y": 84.19819975087731,
+        "5y": 98.98619785555216
+      },
+      "history": "markets/gspc"
+    },
+    {
+      "symbol": "^DJI",
+      "name": "Dow Jones Industrial",
+      "region": "美國",
+      "close": 47336.6796875,
+      "daily_change_pct": -0.4755629781140833,
+      "volume": 571740460,
+      "performance": {
+        "1m": 1.236996788670456,
+        "2m": 4.562388071549648,
+        "3m": 7.160467232827269,
+        "6m": 14.842371413245994,
+        "1y": 13.260272661559721,
+        "3y": 47.921345845865396,
+        "5y": 69.98440594972564
+      },
+      "history": "markets/dji"
+    },
+    {
+      "symbol": "^IXIC",
+      "name": "NASDAQ Composite",
+      "region": "美國",
+      "close": 23834.72265625,
+      "daily_change_pct": 0.46264235814403015,
+      "volume": 9362476000,
+      "performance": {
+        "1m": 4.627696664697867,
+        "2m": 10.87087863017517,
+        "3m": 13.209832094137047,
+        "6m": 33.570958153404504,
+        "1y": 31.104225866579288,
+        "3y": 130.44435785240367,
+        "5y": 105.63518670845522
+      },
+      "history": "markets/ixic"
+    },
+    {
+      "symbol": "^TWII",
+      "name": "TWSE Weighted Index",
+      "region": "台灣",
+      "close": 28462.1796875,
+      "daily_change_pct": 0.8104956772433974,
+      "volume": 0,
+      "performance": {
+        "1m": 4.594417175703631,
+        "2m": 17.710325528512207,
+        "3m": 21.74281790911408,
+        "6m": 38.61682766424573,
+        "1y": 23.935099351265663,
+        "3y": 118.49092958120677,
+        "5y": 121.18744180081097
+      },
+      "history": "markets/twii"
+    },
+    {
+      "symbol": "^HSI",
+      "name": "Hang Seng Index",
+      "region": "香港",
+      "close": 26158.359375,
+      "daily_change_pct": 0.9715998810332018,
+      "volume": 0,
+      "performance": {
+        "1m": -3.6202182892226777,
+        "2m": 3.2155461890856203,
+        "3m": 5.761065283081505,
+        "6m": 15.424670275062939,
+        "1y": 27.182859047515944,
+        "3y": 70.52952200706434,
+        "5y": 4.886295414366916
+      },
+      "history": "markets/hsi"
+    },
+    {
+      "symbol": "^N225",
+      "name": "Nikkei 225",
+      "region": "日本",
+      "close": 52462.73828125,
+      "daily_change_pct": 0.09806739849282677,
+      "volume": 0,
+      "performance": {
+        "1m": 9.423295476997087,
+        "2m": 23.2090328661428,
+        "3m": 30.210543124144944,
+        "6m": 42.64062815799281,
+        "1y": 36.35575508138727,
+        "3y": 92.87955630895199,
+        "5y": 121.4063220462847
+      },
+      "history": "markets/n225"
+    },
+    {
+      "symbol": "^STOXX",
+      "name": "STOXX Europe 600",
+      "region": "歐洲",
+      "close": 572.280029296875,
+      "daily_change_pct": 0.0681974922533412,
+      "volume": 0,
+      "performance": {
+        "1m": 0.3208023579074951,
+        "2m": 4.663667038606258,
+        "3m": 5.860165582989639,
+        "6m": 6.5083530731191646,
+        "1y": 12.385860234512078,
+        "3y": 39.733865548585435,
+        "5y": 60.74829740703886
+      },
+      "history": "markets/stoxx"
+    },
+    {
+      "symbol": "^FTSE",
+      "name": "FTSE 100",
+      "region": "英國",
+      "close": 9701.3701171875,
+      "daily_change_pct": -0.16393121361055182,
+      "volume": 0,
+      "performance": {
+        "1m": 2.213293403673245,
+        "2m": 5.702441895701678,
+        "3m": 6.277952354344464,
+        "6m": 12.840738786183778,
+        "1y": 18.537790934585875,
+        "3y": 34.954928433847726,
+        "5y": 67.64654808568059
+      },
+      "history": "markets/ftse"
+    }
+  ],
+  "forex": [
+    {
+      "symbol": "DX-Y.NYB",
+      "name": "美元指數",
+      "pair": "DXY",
+      "close": 104.32,
+      "daily_change_pct": -0.18,
+      "history": "forex/dxy"
+    },
+    {
+      "symbol": "TWD=X",
+      "name": "美元/台幣",
+      "pair": "USD/TWD",
+      "close": 30.902000427246094,
+      "daily_change_pct": 0.15,
+      "history": "forex/usd-twd"
+    },
+    {
+      "symbol": "EURUSD=X",
+      "name": "歐元/美元",
+      "pair": "EUR/USD",
+      "close": 1.1507480144500732,
+      "daily_change_pct": -0.34,
+      "history": "forex/eur-usd"
+    },
+    {
+      "symbol": "GBPUSD=X",
+      "name": "英鎊/美元",
+      "pair": "GBP/USD",
+      "close": 1.284500002861023,
+      "daily_change_pct": 0.27,
+      "history": "forex/gbp-usd"
+    },
+    {
+      "symbol": "JPY=X",
+      "name": "美元/日圓",
+      "pair": "USD/JPY",
+      "close": 154.4029998779297,
+      "daily_change_pct": 0.31,
+      "history": "forex/usd-jpy"
+    },
+    {
+      "symbol": "KRW=X",
+      "name": "美元/韓圓",
+      "pair": "USD/KRW",
+      "close": 1394.550048828125,
+      "daily_change_pct": 0.45,
+      "history": "forex/usd-krw"
+    },
+    {
+      "symbol": "HKD=X",
+      "name": "美元/港幣",
+      "pair": "USD/HKD",
+      "close": 7.812499046325684,
+      "daily_change_pct": 0.02,
+      "history": "forex/usd-hkd"
+    },
+    {
+      "symbol": "CNY=X",
+      "name": "美元/人民幣",
+      "pair": "USD/CNY",
+      "close": 7.258999824523926,
+      "daily_change_pct": 0.11,
+      "history": "forex/usd-cny"
+    }
+  ],
+  "commodities": [
+    {
+      "symbol": "GC=F",
+      "name": "COMEX 黃金",
+      "close": 4000,
+      "daily_change_pct": 0,
+      "history": "commodities/gold"
+    },
+    {
+      "symbol": "CL=F",
+      "name": "NYMEX 原油",
+      "close": 60.91999816894531,
+      "daily_change_pct": -1.21,
+      "history": "commodities/wti"
+    },
+    {
+      "symbol": "HG=F",
+      "name": "COMEX 銅",
+      "close": 5.055500030517578,
+      "daily_change_pct": -0.84,
+      "history": "commodities/copper"
+    }
+  ],
+  "us_tech": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple",
+      "close": 222.32,
+      "daily_change_pct": 1.23,
+      "volume": 54321000,
+      "history": "us_tech/apple"
+    },
+    {
+      "symbol": "GOOGL",
+      "name": "Google",
+      "close": 171.11,
+      "daily_change_pct": 0.84,
+      "volume": 32450000,
+      "history": "us_tech/google"
+    },
+    {
+      "symbol": "AMZN",
+      "name": "Amazon",
+      "close": 189.27,
+      "daily_change_pct": 0.65,
+      "volume": 28945000,
+      "history": "us_tech/amazon"
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft",
+      "close": 456.54,
+      "daily_change_pct": 0.92,
+      "volume": 25567000,
+      "history": "us_tech/microsoft"
+    },
+    {
+      "symbol": "META",
+      "name": "Meta",
+      "close": 368.21,
+      "daily_change_pct": 1.35,
+      "volume": 21432000,
+      "history": "us_tech/meta"
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA",
+      "close": 902.13,
+      "daily_change_pct": 2.18,
+      "volume": 64210000,
+      "history": "us_tech/nvidia"
+    },
+    {
+      "symbol": "AMD",
+      "name": "AMD",
+      "close": 172.44,
+      "daily_change_pct": -0.54,
+      "volume": 51234000,
+      "history": "us_tech/amd"
+    },
+    {
+      "symbol": "INTC",
+      "name": "Intel",
+      "close": 45.66,
+      "daily_change_pct": 0.12,
+      "volume": 38976000,
+      "history": "us_tech/intel"
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla",
+      "close": 278.92,
+      "daily_change_pct": -0.83,
+      "volume": 71243000,
+      "history": "us_tech/tesla"
+    }
+  ],
+  "crypto": [
+    {
+      "symbol": "BTC-USD",
+      "name": "Bitcoin",
+      "close": 68543.12,
+      "daily_change_pct": -2.35,
+      "history": "crypto/bitcoin"
+    },
+    {
+      "symbol": "ETH-USD",
+      "name": "Ethereum",
+      "close": 3520.44,
+      "daily_change_pct": -1.82,
+      "history": "crypto/ethereum"
+    },
+    {
+      "symbol": "USDT-USD",
+      "name": "Tether (USDT)",
+      "close": 1,
+      "daily_change_pct": 0.01,
+      "history": "crypto/tether"
+    }
+  ],
   "rates": {
     "10Y": 0.4106,
     "2Y": null
   },
   "sentiment": {
     "VIX": 17.170000076293945
+  },
+  "funds": {
+    "QQQ": {
+      "name": "Invesco QQQ",
+      "net_flow_estimate": null,
+      "volume": 36696964
+    },
+    "SPY": {
+      "name": "SPDR S&P 500",
+      "net_flow_estimate": null,
+      "volume": 51527208
+    },
+    "EWT": {
+      "name": "iShares MSCI Taiwan",
+      "net_flow_estimate": null,
+      "volume": 1754348
+    },
+    "EFA": {
+      "name": "iShares MSCI EAFE",
+      "net_flow_estimate": null,
+      "volume": 9849634
+    }
+  },
+  "performance_periods": {
+    "1m": "近1個月",
+    "2m": "近2個月",
+    "3m": "近3個月",
+    "6m": "近6個月",
+    "1y": "近1年",
+    "3y": "近3年",
+    "5y": "近5年"
   }
 }

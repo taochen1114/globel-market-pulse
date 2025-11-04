@@ -40,17 +40,37 @@ def http_get_json(url: str, params: Dict[str, Any] | None = None) -> Dict[str, A
         raise DataFetchError(f"Failed to fetch data from {url}: {exc}") from exc
 
 
-def write_json(data: Dict[str, Any], path: pathlib.Path) -> None:
-    """Write JSON content to a file with UTF-8 encoding and sorted keys."""
+def write_json(data: Any, path: pathlib.Path) -> None:
+    """Write JSON content to a file with UTF-8 encoding.
+
+    Dictionaries retain key ordering via ``sort_keys`` to ensure stable diffs,
+    while lists (used for historical series) bypass sorting to avoid ``TypeError``.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    sort_keys = isinstance(data, dict)
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=sort_keys),
+        encoding="utf-8",
+    )
 
 
-def sync_output(filename: str, payload: Dict[str, Any]) -> None:
+def sync_output(filename: str, payload: Any) -> None:
     """Persist pipeline output to all locations consumed by the project."""
     ensure_directories()
     for directory in (DATA_DIR, WEB_PUBLIC_DATA_DIR, WEB_SRC_DATA_DIR):
         write_json(payload, directory / filename)
+
+
+def sync_history(path_fragment: str, payload: Any) -> None:
+    """Persist historical series payload under ``history`` folders.
+
+    ``path_fragment`` is relative to each target directory, e.g. ``"history/markets/gspc.json"``.
+    """
+
+    ensure_directories()
+    for directory in (DATA_DIR, WEB_PUBLIC_DATA_DIR, WEB_SRC_DATA_DIR):
+        write_json(payload, directory / path_fragment)
 
 
 def today_iso() -> str:

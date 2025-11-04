@@ -1,0 +1,303 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import LineChart from "../../../components/charts/LineChart";
+import marketData from "../../../data/market_data.json";
+import { marketDescriptionsBySymbol } from "../../../data/market_descriptions";
+
+export async function getStaticPaths() {
+  const categories = ["macro", "markets", "forex", "commodities", "us_tech", "crypto"] as const;
+  const seen = new Set<string>();
+  const paths = [] as { params: { category: string; slug: string } }[];
+
+  for (const category of categories) {
+    const items = (marketData as Record<string, any[]>)[category] ?? [];
+    for (const item of items) {
+      const history: string | undefined = item?.history;
+      if (!history) continue;
+      const [, slug] = history.split("/");
+      if (!slug) continue;
+      const key = `${category}/${slug}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      paths.push({ params: { category, slug } });
+    }
+  }
+
+  return paths;
+}
+
+interface HistoryEntry {
+  date: string;
+  close: number | null;
+  change_pct: number | null;
+}
+
+const { category, slug } = Astro.params;
+const historyKey = `${category}/${slug}`;
+
+const collections = [
+  ...(marketData.macro ?? []),
+  ...(marketData.markets ?? []),
+  ...(marketData.forex ?? []),
+  ...(marketData.commodities ?? []),
+  ...(marketData.us_tech ?? []),
+  ...(marketData.crypto ?? [])
+] as Array<Record<string, any>>;
+
+const asset = collections.find((item) => item.history === historyKey);
+
+if (!asset) {
+  throw new Response("Not found", { status: 404 });
+}
+
+const historyModule = await import(`../../../data/history/${category}/${slug}.json`);
+const historyData = (historyModule.default ?? historyModule) as HistoryEntry[];
+
+const chartData = historyData.map((entry) => ({
+  日期: entry.date,
+  收盤: entry.close,
+}));
+
+const latest = historyData.at(-1);
+const numberFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+});
+
+const changeFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+function formatPrice(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  return numberFormatter.format(value);
+}
+
+function formatChange(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${changeFormatter.format(value)}%`;
+}
+
+const meta = asset.symbol ? marketDescriptionsBySymbol[asset.symbol as string] : undefined;
+const title = `${asset.name ?? asset.symbol ?? slug} 走勢觀測`;
+const description = `${asset.name ?? asset.symbol ?? slug} 的每日收盤價趨勢圖`;
+const trend =
+  typeof asset.daily_change_pct === "number"
+    ? asset.daily_change_pct > 0
+      ? "up"
+      : asset.daily_change_pct < 0
+        ? "down"
+        : "neutral"
+    : "neutral";
+
+const performanceEntries =
+  asset.performance && typeof asset.performance === "object"
+    ? (Object.entries(asset.performance as Record<string, number | null>))
+    : [];
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="watch-detail">
+    <a class="back" href="/">← 回到總覽</a>
+    <header>
+      <h1>{asset.name ?? asset.symbol ?? slug}</h1>
+      <p class="symbol">
+        <span>{asset.symbol ?? asset.pair ?? slug.toUpperCase()}</span>
+        {meta && <span class="region">{meta.region}</span>}
+        {asset.pair && <span class="secondary">{asset.pair}</span>}
+      </p>
+    </header>
+
+    <section class="snapshot">
+      <div class="metric">
+        <span class="label">最新價格</span>
+        <span class="value">{formatPrice(asset.close ?? latest?.close ?? null)}</span>
+      </div>
+      <div class={`metric ${trend}`}>
+        <span class="label">日變動</span>
+        <span class="value">{formatChange(asset.daily_change_pct ?? latest?.change_pct ?? null)}</span>
+      </div>
+    </section>
+
+    <section class="chart">
+      <LineChart client:load data={chartData} xKey="日期" series={[{ dataKey: "收盤", color: "#38bdf8", name: "收盤價" }]} />
+    </section>
+
+    {performanceEntries.length > 0 && (
+      <section class="performance">
+        <h2>區間表現</h2>
+        <ul>
+          {performanceEntries.map(([period, value]) => (
+            <li>
+              <span class="period">{period}</span>
+              <span class={`change ${typeof value === "number" ? (value > 0 ? "up" : value < 0 ? "down" : "neutral") : "neutral"}`}>
+                {formatChange(value)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+.watch-detail {
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.back {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.back:hover,
+.back:focus-visible {
+  color: #0ea5e9;
+  text-decoration: underline;
+  outline: none;
+}
+
+header h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 2rem;
+}
+
+.symbol {
+  margin: 0.75rem 0 0;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  color: #94a3b8;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.symbol .region,
+.symbol .secondary {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #cbd5f5;
+}
+
+.snapshot {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.metric {
+  flex: 1 1 180px;
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric .label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.metric .value {
+  color: #f8fafc;
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.metric.up .value {
+  color: #4ade80;
+}
+
+.metric.down .value {
+  color: #f87171;
+}
+
+.chart {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1rem;
+}
+
+.performance {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1.5rem;
+}
+
+.performance h2 {
+  margin: 0 0 1rem;
+  color: #f8fafc;
+}
+
+.performance ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.performance li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.period {
+  color: #cbd5f5;
+  font-size: 0.9rem;
+}
+
+.change {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+}
+
+.change.up {
+  color: #4ade80;
+}
+
+.change.down {
+  color: #f87171;
+}
+
+.change.neutral {
+  color: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .watch-detail {
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+  }
+}
+</style>
