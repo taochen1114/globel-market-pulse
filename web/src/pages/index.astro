@@ -4,37 +4,91 @@ import MarketSummaryCard from "../components/MarketSummaryCard.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import PerformanceTable from "../components/PerformanceTable.astro";
 import LineChart from "../components/charts/LineChart";
+import SnapshotGrid from "../components/SnapshotGrid.astro";
+import SnapshotList from "../components/SnapshotList.astro";
 
 import marketData from "../data/market_data.json";
 import summary from "../data/summary.json";
 import { marketDescriptionsBySymbol } from "../data/market_descriptions";
+import marketsHistory from "../data/history/markets.json";
 
-const markets = Object.entries(marketData.markets ?? {}).map(([symbol, info]) => {
+const highlightItems = (marketData.highlights ?? []).map((item) => ({
+  label: item.label ?? item.name ?? item.symbol ?? "",
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined,
+  secondary: item.region
+}));
+
+const forexItems = (marketData.forex ?? []).map((item) => ({
+  name: item.name ?? item.pair ?? item.symbol ?? "",
+  symbol: item.pair ?? item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined,
+  secondary: item.symbol
+}));
+
+const commodityItems = (marketData.commodities ?? []).map((item) => ({
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined
+}));
+
+const usTechItems = (marketData.us_tech ?? []).map((item) => ({
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined
+}));
+
+const cryptoItems = (marketData.crypto ?? []).map((item) => ({
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined
+}));
+
+const markets = (marketData.markets ?? []).map((info) => {
+  const symbol = info.symbol ?? "";
   const meta = marketDescriptionsBySymbol[symbol];
   return {
     symbol,
     name: info.name ?? meta?.name ?? symbol,
-    close: info.close ?? 0,
-    change: info.daily_change_pct ?? 0,
     performance: info.performance ?? {},
     link: meta ? `/indices/${meta.slug}` : undefined
   };
 });
 
-const globalLineData = markets.map((market) => ({
-  指數: market.name,
-  收盤: market.close,
-  漲跌百分比: market.change
-}));
+const trendSymbols = [
+  { slug: "gspc", label: "S&P 500" },
+  { slug: "twii", label: "台股加權" },
+  { slug: "hsi", label: "恒生" },
+  { slug: "n225", label: "日經225" },
+  { slug: "stoxx", label: "歐洲600" }
+];
 
-const forex = Object.entries(marketData.forex ?? {}).map(([pair, value]) => ({
-  產品: pair,
-  價格: value
-}));
+const marketHistory = marketsHistory as Record<string, { date: string; close: number | null }[]>;
+const timeline = (marketHistory[trendSymbols[0].slug] ?? []).map((entry) => entry.date);
+const globalLineData = timeline.map((date, index) => {
+  const row: Record<string, string | number | null> = { 日期: date };
+  trendSymbols.forEach(({ slug, label }) => {
+    const series = marketHistory[slug];
+    row[label] = series?.[index]?.close ?? null;
+  });
+  return row;
+});
 
-const commodities = Object.entries(marketData.commodities ?? {}).map(([name, value]) => ({
-  產品: name,
-  價格: value
+const lineSeries = trendSymbols.map(({ label }, idx) => ({
+  dataKey: label,
+  color: ["#38bdf8", "#fbbf24", "#34d399", "#f472b6", "#c084fc"][idx % 5],
+  name: label
 }));
 
 const periodOrder = ["1m", "2m", "3m", "6m", "1y", "3y", "5y"];
@@ -61,38 +115,41 @@ const performancePeriods = periodOrder
     <MarketSummaryCard title="資金流向焦點" description={summary.fund_flow} />
   </div>
 
-  <section>
-    <SectionTitle title="全球主要指數" subtitle="以收盤價與日變動率快速掌握股市溫度" />
-    <LineChart
-      client:load
-      data={globalLineData}
-      xKey="指數"
-      series={[
-        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
-        { dataKey: "漲跌百分比", color: "#fbbf24", name: "漲跌%" }
-      ]}
+  <SnapshotGrid
+    title="全球焦點觀測"
+    subtitle="美元、黃金、原油與各大市場指數的即時日變動，點擊進入可查看歷史走勢"
+    items={highlightItems}
+  />
+
+  <section class="trend">
+    <SectionTitle title="主要股市趨勢線" subtitle="透過最近幾個交易日的收盤價觀察動能" />
+    <LineChart client:load data={globalLineData} xKey="日期" series={lineSeries} />
+  </section>
+
+  <section class="grid two">
+    <SnapshotList
+      title="外匯觀測"
+      subtitle="涵蓋美元、歐元、英鎊、日圓、韓圓、港幣與人民幣對美元的即時變化"
+      items={forexItems}
+    />
+    <SnapshotList
+      title="原物料價格"
+      subtitle="追蹤黃金、原油與工業金屬的波動"
+      items={commodityItems}
     />
   </section>
 
   <section class="grid two">
-    <div>
-      <SectionTitle title="主要匯率" subtitle="觀察美元走勢與跨市場影響" />
-      <LineChart
-        client:load
-        data={forex}
-        xKey="產品"
-        series={[{ dataKey: "價格", color: "#f472b6", name: "價格" }]}
-      />
-    </div>
-    <div>
-      <SectionTitle title="原物料行情" subtitle="掌握大宗商品對通膨的前瞻訊號" />
-      <LineChart
-        client:load
-        data={commodities}
-        xKey="產品"
-        series={[{ dataKey: "價格", color: "#34d399", name: "價格" }]}
-      />
-    </div>
+    <SnapshotList
+      title="美國科技巨頭"
+      subtitle="聚焦九大科技龍頭的日內變化"
+      items={usTechItems}
+    />
+    <SnapshotList
+      title="加密資產"
+      subtitle="比特幣、以太幣與 USDT 穩定幣的價格監控"
+      items={cryptoItems}
+    />
   </section>
 
   <section>
@@ -104,3 +161,59 @@ const performancePeriods = periodOrder
     />
   </section>
 </BaseLayout>
+
+<style>
+.hero {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(12px);
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 2.5rem;
+}
+
+.hero p {
+  margin: 1rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.hero strong {
+  color: #fbbf24;
+}
+
+.grid.two {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2.5rem;
+}
+
+.trend {
+  margin: 2.5rem 0;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

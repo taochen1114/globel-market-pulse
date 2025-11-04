@@ -1,0 +1,189 @@
+---
+interface SnapshotItem {
+  label: string;
+  name: string;
+  symbol: string;
+  price: number | null | undefined;
+  changePct: number | null | undefined;
+  link?: string;
+  secondary?: string;
+}
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  items: SnapshotItem[];
+}
+
+const { title, subtitle, items } = Astro.props as Props;
+const priceFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+});
+
+const changeFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+function formatPrice(value: SnapshotItem["price"]) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  return priceFormatter.format(value);
+}
+
+function formatChange(value: SnapshotItem["changePct"]) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${changeFormatter.format(value)}%`;
+}
+---
+
+<section class="snapshot-grid">
+  <div class="header">
+    <h2>{title}</h2>
+    {subtitle && <p>{subtitle}</p>}
+  </div>
+  <div class="grid">
+    {items.map((item) => {
+      const trend = typeof item.changePct === "number" ? (item.changePct > 0 ? "up" : item.changePct < 0 ? "down" : "neutral") : "neutral";
+      const content = (
+        <div class="card" aria-live="polite">
+          <div class="label">{item.label}</div>
+          <div class="price">{formatPrice(item.price)}</div>
+          <div class={`change ${trend}`}>{formatChange(item.changePct)}</div>
+          <div class="meta">
+            <span class="name">{item.name}</span>
+            <span class="symbol">{item.symbol}</span>
+            {item.secondary && <span class="extra">{item.secondary}</span>}
+          </div>
+        </div>
+      );
+      return item.link ? (
+        <a class="card-link" href={item.link}>{content}</a>
+      ) : (
+        <div class="card-link" role="group">{content}</div>
+      );
+    })}
+  </div>
+</section>
+
+<style>
+.snapshot-grid {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 1.75rem;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.5rem;
+}
+
+.header p {
+  margin: 0.35rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 150px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card-link:hover .card,
+.card-link:focus-visible .card {
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.label {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.price {
+  font-size: 1.6rem;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.change {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+}
+
+.change.up {
+  color: #4ade80;
+}
+
+.change.down {
+  color: #f87171;
+}
+
+.change.neutral {
+  color: #e2e8f0;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.meta .name {
+  color: #f1f5f9;
+  font-weight: 500;
+}
+
+.meta .symbol {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+}
+
+.meta .extra {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .snapshot-grid {
+    padding: 1.25rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+</style>

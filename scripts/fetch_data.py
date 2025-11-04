@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, Optional
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional
 
 import pandas as pd
 import yfinance as yf
 
-from utils import sync_output, today_iso
+from utils import DATA_DIR, sync_history, sync_output, today_iso
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
@@ -35,10 +36,66 @@ PERFORMANCE_LABELS = {
 
 
 @dataclass
-class TickerSpec:
+class AssetSpec:
     symbol: str
-    label: str
-    field_map: Optional[Dict[str, str]] = None
+    name: str
+    category: str
+    slug: Optional[str] = None
+    region: Optional[str] = None
+
+
+@dataclass
+class ForexSpec:
+    symbol: str
+    name: str
+    pair: str
+    category: str = "forex"
+
+
+def slugify_symbol(symbol: str) -> str:
+    """Convert ticker symbols to filesystem-friendly slugs."""
+
+    slug = "".join(char.lower() if char.isalnum() else "-" for char in symbol)
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    return slug.strip("-") or "asset"
+
+
+def history_path(category: str, slug: str) -> Path:
+    return DATA_DIR / "history" / category / f"{slug}.json"
+
+
+def load_history(category: str, slug: str) -> List[Dict[str, Optional[float]]]:
+    path = history_path(category, slug)
+    if not path.exists():
+        return []
+    try:
+        return pd.read_json(path).to_dict(orient="records")  # type: ignore[return-value]
+    except ValueError:
+        return []
+
+
+def persist_history(category: str, slug: str, entries: List[Dict[str, Optional[float]]]) -> None:
+    relative = f"history/{category}/{slug}.json"
+    sync_history(relative, entries)
+
+
+def update_history(
+    category: str,
+    slug: str,
+    entry: Dict[str, Optional[float]],
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]],
+) -> List[Dict[str, Optional[float]]]:
+    history = registry.setdefault(category, {}).get(slug)
+    if history is None:
+        history = load_history(category, slug)
+    if history and history[-1].get("date") == entry.get("date"):
+        history[-1] = entry
+    else:
+        history.append(entry)
+    persist_history(category, slug, history)
+    registry[category][slug] = history
+    return history
 
 
 def latest_close(ticker: yf.Ticker) -> Optional[float]:
@@ -61,18 +118,27 @@ def daily_change_percent(ticker: yf.Ticker) -> Optional[float]:
     return float((latest - previous) / previous * 100)
 
 
-def fetch_equity_markets() -> Dict[str, Dict[str, Optional[float]]]:
-    specs = [
-        TickerSpec(symbol="^TWII", label="TWSE Weighted Index"),
-        TickerSpec(symbol="^GSPC", label="S&P 500"),
-        TickerSpec(symbol="^IXIC", label="NASDAQ Composite"),
-        TickerSpec(symbol="^DJI", label="Dow Jones Industrial"),
-        TickerSpec(symbol="^HSI", label="Hang Seng Index"),
-        TickerSpec(symbol="^N225", label="Nikkei 225"),
-        TickerSpec(symbol="^STOXX", label="STOXX Europe 600"),
-        TickerSpec(symbol="^FTSE", label="FTSE 100"),
-    ]
-    result: Dict[str, Dict[str, Optional[float]]] = {}
+MARKET_SPECS: List[AssetSpec] = [
+    AssetSpec(symbol="^GSPC", name="S&P 500", category="markets", slug="gspc", region="美國"),
+    AssetSpec(symbol="^DJI", name="Dow Jones Industrial", category="markets", slug="dji", region="美國"),
+    AssetSpec(symbol="^IXIC", name="NASDAQ Composite", category="markets", slug="ixic", region="美國"),
+    AssetSpec(symbol="^TWII", name="TWSE Weighted Index", category="markets", slug="twii", region="台灣"),
+    AssetSpec(symbol="^HSI", name="Hang Seng Index", category="markets", slug="hsi", region="香港"),
+    AssetSpec(symbol="^N225", name="Nikkei 225", category="markets", slug="n225", region="日本"),
+    AssetSpec(symbol="^STOXX", name="STOXX Europe 600", category="markets", slug="stoxx", region="歐洲"),
+    AssetSpec(symbol="^FTSE", name="FTSE 100", category="markets", slug="ftse", region="英國"),
+]
+
+
+def fetch_asset_series(
+    specs: Iterable[AssetSpec],
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]],
+    *,
+    include_performance: bool = False,
+    include_volume: bool = False,
+) -> List[Dict[str, object]]:
+    today = today_iso()
+    series: List[Dict[str, object]] = []
 
     for spec in specs:
         ticker = yf.Ticker(spec.symbol)
@@ -88,24 +154,55 @@ def fetch_equity_markets() -> Dict[str, Dict[str, Optional[float]]]:
             LOGGER.warning("Unable to compute daily change for %s: %s", spec.symbol, exc)
             change_pct = None
 
-        performance = historical_performance(ticker)
-        volume = None
-        try:
-            history = ticker.history(period="5d", interval="1d")
-            if not history.empty:
-                volume = float(history["Volume"].dropna().iloc[-1])
-        except Exception as exc:  # noqa: BLE001 - log and continue
-            LOGGER.warning("Unable to fetch volume for %s: %s", spec.symbol, exc)
+        volume: Optional[float] = None
+        if include_volume:
+            try:
+                history = ticker.history(period="5d", interval="1d")
+                if not history.empty:
+                    volume = float(history["Volume"].dropna().iloc[-1])
+            except Exception as exc:  # noqa: BLE001 - log and continue
+                LOGGER.warning("Unable to fetch volume for %s: %s", spec.symbol, exc)
 
-        result[spec.symbol] = {
-            "name": spec.label,
+        performance: Optional[Dict[str, Optional[float]]] = None
+        if include_performance:
+            performance = historical_performance(ticker)
+
+        slug = spec.slug or slugify_symbol(spec.symbol)
+        update_history(
+            spec.category,
+            slug,
+            {"date": today, "close": close_price, "change_pct": change_pct},
+            registry,
+        )
+
+        record: Dict[str, object] = {
+            "symbol": spec.symbol,
+            "name": spec.name,
             "close": close_price,
             "daily_change_pct": change_pct,
-            "volume": volume,
-            "performance": performance,
+            "history": f"{spec.category}/{slug}",
         }
+        if spec.region:
+            record["region"] = spec.region
+        if include_volume:
+            record["volume"] = volume
+        if include_performance and performance is not None:
+            record["performance"] = performance
 
-    return result
+        series.append(record)
+
+    return series
+
+
+def fetch_equity_markets(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    return fetch_asset_series(
+        MARKET_SPECS,
+        registry,
+        include_performance=True,
+        include_volume=True,
+    )
 
 
 def _first_valid_close(history: pd.DataFrame, threshold: pd.Timestamp) -> Optional[float]:
@@ -159,38 +256,111 @@ def historical_performance(ticker: yf.Ticker) -> Dict[str, Optional[float]]:
     return performance
 
 
-def fetch_forex() -> Dict[str, Optional[float]]:
-    tickers = {
-        "USD/TWD": "TWD=X",
-        "EUR/USD": "EURUSD=X",
-        "JPY/USD": "JPY=X",
-    }
-    forex: Dict[str, Optional[float]] = {}
-    for label, symbol in tickers.items():
-        ticker = yf.Ticker(symbol)
-        try:
-            forex[label] = latest_close(ticker)
-        except Exception as exc:  # noqa: BLE001 - log and continue
-            LOGGER.warning("Unable to fetch forex rate for %s: %s", symbol, exc)
-            forex[label] = None
-    return forex
+FOREX_SPECS: List[ForexSpec] = [
+    ForexSpec(symbol="DX-Y.NYB", name="美元指數", pair="DXY"),
+    ForexSpec(symbol="TWD=X", name="美元/台幣", pair="USD/TWD"),
+    ForexSpec(symbol="EURUSD=X", name="歐元/美元", pair="EUR/USD"),
+    ForexSpec(symbol="GBPUSD=X", name="英鎊/美元", pair="GBP/USD"),
+    ForexSpec(symbol="JPY=X", name="美元/日圓", pair="USD/JPY"),
+    ForexSpec(symbol="KRW=X", name="美元/韓圓", pair="USD/KRW"),
+    ForexSpec(symbol="HKD=X", name="美元/港幣", pair="USD/HKD"),
+    ForexSpec(symbol="CNY=X", name="美元/人民幣", pair="USD/CNY"),
+]
 
 
-def fetch_commodities() -> Dict[str, Optional[float]]:
-    tickers = {
-        "Gold": "GC=F",
-        "Oil": "CL=F",
-        "Copper": "HG=F",
-    }
-    commodities: Dict[str, Optional[float]] = {}
-    for label, symbol in tickers.items():
-        ticker = yf.Ticker(symbol)
+def fetch_forex(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    results: List[Dict[str, object]] = []
+
+    today = today_iso()
+    for spec in FOREX_SPECS:
+        ticker = yf.Ticker(spec.symbol)
         try:
-            commodities[label] = latest_close(ticker)
+            close_price = latest_close(ticker)
         except Exception as exc:  # noqa: BLE001 - log and continue
-            LOGGER.warning("Unable to fetch commodity price for %s: %s", symbol, exc)
-            commodities[label] = None
-    return commodities
+            LOGGER.warning("Unable to fetch forex rate for %s: %s", spec.symbol, exc)
+            close_price = None
+
+        try:
+            change_pct = daily_change_percent(ticker)
+        except Exception as exc:  # noqa: BLE001 - log and continue
+            LOGGER.warning("Unable to compute forex change for %s: %s", spec.symbol, exc)
+            change_pct = None
+
+        slug = slugify_symbol(spec.pair)
+        update_history(
+            spec.category,
+            slug,
+            {"date": today, "close": close_price, "change_pct": change_pct},
+            registry,
+        )
+
+        results.append(
+            {
+                "symbol": spec.symbol,
+                "name": spec.name,
+                "pair": spec.pair,
+                "close": close_price,
+                "daily_change_pct": change_pct,
+                "history": f"{spec.category}/{slug}",
+            }
+        )
+
+    return results
+
+
+COMMODITY_SPECS: List[AssetSpec] = [
+    AssetSpec(symbol="GC=F", name="COMEX 黃金", category="commodities", slug="gold"),
+    AssetSpec(symbol="CL=F", name="NYMEX 原油", category="commodities", slug="wti"),
+    AssetSpec(symbol="HG=F", name="COMEX 銅", category="commodities", slug="copper"),
+]
+
+MACRO_SPECS: List[AssetSpec] = [
+    AssetSpec(symbol="DX-Y.NYB", name="美元指數 (DXY)", category="macro", slug="dxy"),
+]
+
+US_TECH_SPECS: List[AssetSpec] = [
+    AssetSpec(symbol="AAPL", name="Apple", category="us_tech", slug="apple"),
+    AssetSpec(symbol="GOOGL", name="Google", category="us_tech", slug="google"),
+    AssetSpec(symbol="AMZN", name="Amazon", category="us_tech", slug="amazon"),
+    AssetSpec(symbol="MSFT", name="Microsoft", category="us_tech", slug="microsoft"),
+    AssetSpec(symbol="META", name="Meta", category="us_tech", slug="meta"),
+    AssetSpec(symbol="NVDA", name="NVIDIA", category="us_tech", slug="nvidia"),
+    AssetSpec(symbol="AMD", name="AMD", category="us_tech", slug="amd"),
+    AssetSpec(symbol="INTC", name="Intel", category="us_tech", slug="intel"),
+    AssetSpec(symbol="TSLA", name="Tesla", category="us_tech", slug="tesla"),
+]
+
+CRYPTO_SPECS: List[AssetSpec] = [
+    AssetSpec(symbol="BTC-USD", name="Bitcoin", category="crypto", slug="bitcoin"),
+    AssetSpec(symbol="ETH-USD", name="Ethereum", category="crypto", slug="ethereum"),
+    AssetSpec(symbol="USDT-USD", name="Tether (USDT)", category="crypto", slug="tether"),
+]
+
+
+def fetch_commodities(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    return fetch_asset_series(COMMODITY_SPECS, registry)
+
+
+def fetch_macro_assets(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    return fetch_asset_series(MACRO_SPECS, registry)
+
+
+def fetch_us_tech(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    return fetch_asset_series(US_TECH_SPECS, registry, include_volume=True)
+
+
+def fetch_crypto_assets(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> List[Dict[str, object]]:
+    return fetch_asset_series(CRYPTO_SPECS, registry)
 
 
 def _first_available_close(symbols: list[str]) -> tuple[Optional[float], Optional[str]]:
@@ -269,12 +439,72 @@ def fetch_etf_flows() -> Dict[str, Dict[str, Optional[float]]]:
     return flows
 
 
+def build_highlights(
+    macro_assets: List[Dict[str, object]],
+    commodities: List[Dict[str, object]],
+    markets: List[Dict[str, object]],
+) -> List[Dict[str, object]]:
+    selections = [
+        ("macro", "DX-Y.NYB", "美元"),
+        ("commodities", "GC=F", "黃金"),
+        ("commodities", "CL=F", "原油"),
+        ("markets", "^GSPC", "美國"),
+        ("markets", "^TWII", "台灣"),
+        ("markets", "^HSI", "香港"),
+        ("markets", "^N225", "日本"),
+        ("markets", "^STOXX", "歐洲"),
+    ]
+
+    sources = {
+        "macro": macro_assets,
+        "commodities": commodities,
+        "markets": markets,
+    }
+
+    highlights: List[Dict[str, object]] = []
+    for category, symbol, label in selections:
+        dataset = sources.get(category, [])
+        match = next((item for item in dataset if item.get("symbol") == symbol), None)
+        if not match:
+            continue
+        entry = dict(match)
+        entry["label"] = label
+        highlights.append(entry)
+
+    return highlights
+
+
+def persist_history_indexes(
+    registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]]
+) -> None:
+    for category, series in registry.items():
+        aggregate = {slug: entries for slug, entries in series.items()}
+        sync_history(f"history/{category}.json", aggregate)
+
+
 def build_payload() -> Dict[str, object]:
+    history_registry: Dict[str, Dict[str, List[Dict[str, Optional[float]]]]] = {}
+
+    markets = fetch_equity_markets(history_registry)
+    forex = fetch_forex(history_registry)
+    commodities = fetch_commodities(history_registry)
+    macro = fetch_macro_assets(history_registry)
+    us_tech = fetch_us_tech(history_registry)
+    crypto = fetch_crypto_assets(history_registry)
+
+    highlights = build_highlights(macro, commodities, markets)
+
+    persist_history_indexes(history_registry)
+
     return {
         "date": today_iso(),
-        "markets": fetch_equity_markets(),
-        "forex": fetch_forex(),
-        "commodities": fetch_commodities(),
+        "highlights": highlights,
+        "macro": macro,
+        "markets": markets,
+        "forex": forex,
+        "commodities": commodities,
+        "us_tech": us_tech,
+        "crypto": crypto,
         "rates": fetch_rates(),
         "sentiment": fetch_sentiment(),
         "funds": fetch_etf_flows(),
