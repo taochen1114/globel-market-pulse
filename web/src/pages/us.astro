@@ -2,65 +2,201 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import SnapshotList from "../components/SnapshotList.astro";
 import LineChart from "../components/charts/LineChart";
+import BarChart from "../components/charts/BarChart";
 
 import marketData from "../data/market_data.json";
 import summary from "../data/summary.json";
+import marketsHistory from "../data/history/markets.json";
+import { marketDescriptionsBySymbol } from "../data/market_descriptions";
 
+const numberFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2
+});
+
+const formatPct = (value: number | null | undefined) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${numberFormatter.format(value)}%`;
+};
+
+const marketsArray = Array.isArray(marketData.markets) ? marketData.markets : [];
 const equitySymbols = ["^GSPC", "^IXIC", "^DJI"];
 const equityMarkets = equitySymbols
-  .map((symbol) => ({ symbol, ...(marketData.markets?.[symbol] ?? {}) }))
-  .map((item) => ({
-    symbol: item.symbol,
-    name: item.name ?? item.symbol,
-    close: item.close ?? null,
-    change: item.daily_change_pct ?? null
-  }));
+  .map((symbol) => {
+    const info = marketsArray.find((item) => item.symbol === symbol) ?? {};
+    return {
+      symbol,
+      name: info.name ?? symbol,
+      close: info.close ?? null,
+      change: info.daily_change_pct ?? null,
+      performance: info.performance ?? {}
+    };
+  })
+  .filter((item) => item.close !== null);
 
 const vixValue = marketData.sentiment?.VIX ?? null;
 
-const rates = Object.entries(marketData.rates ?? {}).map(([label, value]) => ({
-  年期: label,
-  殖利率: value
+const usSummary = (() => {
+  if (!equityMarkets.length) {
+    return "美股主要指數暫無最新行情，請稍後再試。";
+  }
+  const sorted = [...equityMarkets].sort(
+    (a, b) => (b.change ?? Number.NEGATIVE_INFINITY) - (a.change ?? Number.NEGATIVE_INFINITY)
+  );
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const avgChange =
+    sorted.reduce((acc, item) => acc + (typeof item.change === "number" ? item.change : 0), 0) /
+    sorted.length;
+  const statements = [
+    `三大指數平均變動 ${formatPct(avgChange)}，由 ${best.name} 領漲（${formatPct(best.change ?? null)}）。`
+  ];
+  if (best.symbol !== worst.symbol) {
+    statements.push(`${worst.name} 表現相對落後（${formatPct(worst.change ?? null)}）。`);
+  }
+  if (typeof vixValue === "number") {
+    statements.push(`VIX 收在 ${numberFormatter.format(vixValue)}，顯示風險情緒 ${vixValue >= 20 ? "偏升" : "維持穩定"}。`);
+  }
+
+  const ratesMap = marketData.rates ?? {};
+  const tenY = typeof ratesMap["10Y"] === "number" ? ratesMap["10Y"] : null;
+  const twoY = typeof ratesMap["2Y"] === "number" ? ratesMap["2Y"] : null;
+  if (tenY !== null && twoY !== null) {
+    const spread = (tenY - twoY) * 100;
+    const spreadText = numberFormatter.format(spread);
+    statements.push(`10Y/2Y 利差為 ${spreadText} 基點，殖利率曲線 ${spread < 0 ? "仍倒掛" : "轉為正斜率"}。`);
+  }
+
+  return statements.join(" ");
+})();
+
+const equitySnapshots = equityMarkets.map((item) => ({
+  name: item.name,
+  symbol: item.symbol,
+  price: item.close,
+  changePct: item.change,
+  link: marketDescriptionsBySymbol[item.symbol]?.slug
+    ? `/indices/${marketDescriptionsBySymbol[item.symbol]?.slug}`
+    : undefined
+}));
+
+const techLeaders = (marketData.us_tech ?? []).map((item) => ({
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined
+}));
+
+const rates = Object.entries(marketData.rates ?? {})
+  .map(([label, value]) => ({
+    年期: label,
+    殖利率: typeof value === "number" ? Number(numberFormatter.format(value)) : null
+  }))
+  .filter((item) => typeof item.殖利率 === "number");
+
+const history = marketsHistory as Record<string, { date: string; close: number | null }[]>;
+const seriesConfig = equitySymbols
+  .map((symbol) => {
+    const meta = marketDescriptionsBySymbol[symbol];
+    return meta ? { slug: meta.slug, label: meta.name } : undefined;
+  })
+  .filter(Boolean) as { slug: string; label: string }[];
+
+const timeline = seriesConfig.length ? (history[seriesConfig[0].slug] ?? []).map((entry) => entry.date) : [];
+const lineData = timeline.map((date, index) => {
+  const row: Record<string, string | number | null> = { 日期: date };
+  seriesConfig.forEach(({ slug, label }) => {
+    row[label] = history[slug]?.[index]?.close ?? null;
+  });
+  return row;
+});
+
+const lineSeries = seriesConfig.map(({ label }, idx) => ({
+  dataKey: label,
+  color: ["#38bdf8", "#fbbf24", "#34d399"][idx % 3],
+  name: label
 }));
 ---
 
 <BaseLayout title="美國市場解析" current="us">
   <div class="hero">
     <h1>美股與債市焦點</h1>
-    <p>追蹤 S&P500、NASDAQ、道瓊與 VIX，同步掌握美債殖利率變化。</p>
+    <p>追蹤 S&P 500、NASDAQ、道瓊與 VIX，同步掌握美債殖利率變化。</p>
   </div>
 
   <div class="grid two">
-    <MarketSummaryCard
-      title="AI 美股摘要"
-      description={summary.daily_summary}
-    />
+    <MarketSummaryCard title="AI 美股摘要" description={usSummary} />
+    <MarketSummaryCard title="全球市場總結" description={summary.daily_summary} />
   </div>
 
-  <section>
-    <SectionTitle title="主要指數" subtitle="衡量美股風險偏好與波動" />
-    <LineChart
-      client:load
-      data={[
-        ...equityMarkets.map((item) => ({ 指標: item.name, 收盤: item.close ?? 0, 漲跌百分比: item.change ?? 0 })),
-        { 指標: "VIX 指數", 收盤: vixValue ?? 0, 漲跌百分比: 0 }
-      ]}
-      xKey="指標"
-      series={[
-        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
-        { dataKey: "漲跌百分比", color: "#f472b6", name: "漲跌%" }
-      ]}
+  <section class="grid two">
+    <SnapshotList
+      title="三大指數"
+      subtitle="收盤點位與單日漲跌幅"
+      items={equitySnapshots}
+    />
+    <SnapshotList
+      title="科技巨頭動態"
+      subtitle="FAANG 與半導體龍頭的日內表現"
+      items={techLeaders}
     />
   </section>
 
-  <section>
-    <SectionTitle title="美債殖利率" subtitle="2 年期與 10 年期利差觀察" />
-    <LineChart
-      client:load
-      data={rates}
-      xKey="年期"
-      series={[{ dataKey: "殖利率", color: "#a855f7", name: "殖利率" }]}
-    />
-  </section>
+  {lineData.length > 0 && (
+    <section class="trend">
+      <SectionTitle title="近期走勢對比" subtitle="觀察主要指數的短期動能" />
+      <LineChart client:load data={lineData} xKey="日期" series={lineSeries} />
+    </section>
+  )}
+
+  {rates.length > 0 && (
+    <section>
+      <SectionTitle title="美債殖利率" subtitle="以基點呈現 2Y、10Y 等主要期限" />
+      <BarChart client:load data={rates} xKey="年期" dataKey="殖利率" label="殖利率 (%)" />
+    </section>
+  )}
 </BaseLayout>
+
+<style>
+.hero {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(12px);
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 2.25rem;
+}
+
+.hero p {
+  margin: 1rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.grid.two {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2.5rem;
+}
+
+.trend {
+  margin: 2.5rem 0;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 2rem;
+}
+</style>
