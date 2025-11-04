@@ -2,57 +2,198 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import SnapshotList from "../components/SnapshotList.astro";
 import LineChart from "../components/charts/LineChart";
 
 import marketData from "../data/market_data.json";
 import summary from "../data/summary.json";
+import marketsHistory from "../data/history/markets.json";
+import { marketDescriptionsBySymbol } from "../data/market_descriptions";
 
+const formatter = new Intl.NumberFormat("zh-Hant", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const formatPct = (value: number | null | undefined) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${formatter.format(value)}%`;
+};
+
+const marketsArray = Array.isArray(marketData.markets) ? marketData.markets : [];
 const symbols = ["^STOXX", "^FTSE"];
-const markets = symbols
-  .map((symbol) => ({ symbol, ...(marketData.markets?.[symbol] ?? {}) }))
+const europeMarkets = symbols
+  .map((symbol) => {
+    const info = marketsArray.find((item) => item.symbol === symbol) ?? {};
+    return {
+      symbol,
+      name: info.name ?? symbol,
+      close: info.close ?? null,
+      change: info.daily_change_pct ?? null,
+      performance: info.performance ?? {},
+      region: info.region ?? marketDescriptionsBySymbol[symbol]?.region
+    };
+  })
+  .filter((item) => item.close !== null);
+
+const europeSummary = (() => {
+  if (!europeMarkets.length) {
+    return "尚未取得歐洲主要指數資料，請稍後再試。";
+  }
+  const sorted = [...europeMarkets].sort(
+    (a, b) => (b.change ?? Number.NEGATIVE_INFINITY) - (a.change ?? Number.NEGATIVE_INFINITY)
+  );
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const avgChange =
+    sorted.reduce((acc, item) => acc + (typeof item.change === "number" ? item.change : 0), 0) /
+    sorted.length;
+  const eurusd = (marketData.forex ?? []).find((item) => item.pair === "EUR/USD");
+  const brent = (marketData.commodities ?? []).find((item) => item.symbol === "CL=F");
+
+  const statements = [
+    `歐洲指數平均變動 ${formatPct(avgChange)}，${best.name} 領先（${formatPct(best.change ?? null)}）。`
+  ];
+  if (best.symbol !== worst.symbol) {
+    statements.push(`${worst.name} 相對疲弱（${formatPct(worst.change ?? null)}）。`);
+  }
+  if (eurusd && typeof eurusd.daily_change_pct === "number") {
+    statements.push(`歐元/美元日變動 ${formatPct(eurusd.daily_change_pct)}，顯示匯率對利差消息的即時反應。`);
+  }
+  if (brent && typeof brent.daily_change_pct === "number") {
+    statements.push(`能源面以原油為首，日變動 ${formatPct(brent.daily_change_pct)}。`);
+  }
+
+  return statements.join(" ");
+})();
+
+const europeSnapshots = europeMarkets.map((item) => ({
+  name: item.name,
+  symbol: item.symbol,
+  price: item.close,
+  changePct: item.change,
+  secondary: item.region ?? undefined,
+  link: marketDescriptionsBySymbol[item.symbol]?.slug
+    ? `/indices/${marketDescriptionsBySymbol[item.symbol]?.slug}`
+    : undefined
+}));
+
+const focusCommodities = (marketData.commodities ?? []).map((item) => ({
+  name: item.name ?? item.symbol ?? "",
+  symbol: item.symbol ?? "",
+  price: item.close,
+  changePct: item.daily_change_pct,
+  link: item.history ? `/watch/${item.history}` : undefined
+}));
+
+const euroForexPairs = new Set(["EUR/USD", "GBP/USD"]);
+const euroForex = (marketData.forex ?? [])
+  .filter((item) => (item.pair ? euroForexPairs.has(item.pair) : false))
   .map((item) => ({
-    symbol: item.symbol,
-    name: item.name ?? item.symbol,
-    close: item.close ?? 0,
-    change: item.daily_change_pct ?? 0
+    name: item.name ?? item.pair ?? item.symbol ?? "",
+    symbol: item.pair ?? item.symbol ?? "",
+    price: item.close,
+    changePct: item.daily_change_pct,
+    link: item.history ? `/watch/${item.history}` : undefined
   }));
 
-const commodities = Object.entries(marketData.commodities ?? {}).map(([name, value]) => ({
-  品項: name,
-  價格: value
+const history = marketsHistory as Record<string, { date: string; close: number | null }[]>;
+const seriesConfig = symbols
+  .map((symbol) => {
+    const meta = marketDescriptionsBySymbol[symbol];
+    return meta ? { slug: meta.slug, label: meta.name } : undefined;
+  })
+  .filter(Boolean) as { slug: string; label: string }[];
+
+const timeline = seriesConfig.length ? (history[seriesConfig[0].slug] ?? []).map((entry) => entry.date) : [];
+const lineData = timeline.map((date, index) => {
+  const row: Record<string, string | number | null> = { 日期: date };
+  seriesConfig.forEach(({ slug, label }) => {
+    row[label] = history[slug]?.[index]?.close ?? null;
+  });
+  return row;
+});
+
+const lineSeries = seriesConfig.map(({ label }, idx) => ({
+  dataKey: label,
+  color: ["#38bdf8", "#fbbf24"][idx % 2],
+  name: label
 }));
 ---
 
 <BaseLayout title="歐洲市場焦點" current="europe">
   <div class="hero">
     <h1>歐洲市場與能源觀察</h1>
-    <p>追蹤 STOXX600、英國 FTSE 與能源相關商品，洞察歐洲景氣動能。</p>
+    <p>追蹤 STOXX 600、英國 FTSE 與能源相關商品，洞察歐洲景氣動能。</p>
   </div>
 
   <div class="grid two">
-    <MarketSummaryCard title="AI 歐洲洞察" description={summary.regional_trends} />
+    <MarketSummaryCard title="AI 歐洲洞察" description={europeSummary} />
+    <MarketSummaryCard title="全球敘事回顧" description={summary.regional_trends} />
   </div>
 
-  <section>
-    <SectionTitle title="歐洲主要指數" subtitle="掌握歐股表現與日變動率" />
-    <LineChart
-      client:load
-      data={markets.map((item) => ({ 指數: item.name, 收盤: item.close, 漲跌百分比: item.change }))}
-      xKey="指數"
-      series={[
-        { dataKey: "收盤", color: "#38bdf8", name: "收盤" },
-        { dataKey: "漲跌百分比", color: "#fbbf24", name: "漲跌%" }
-      ]}
+  <section class="grid two">
+    <SnapshotList
+      title="歐洲主要指數"
+      subtitle="掌握 STOXX600 與 FTSE 的最新變動"
+      items={europeSnapshots}
+    />
+    <SnapshotList
+      title="能源與金屬"
+      subtitle="原油、黃金與銅價的日內走勢"
+      items={focusCommodities}
     />
   </section>
 
-  <section>
-    <SectionTitle title="能源與金屬" subtitle="原油、黃金、銅價變化" />
-    <LineChart
-      client:load
-      data={commodities}
-      xKey="品項"
-      series={[{ dataKey: "價格", color: "#34d399", name: "價格" }]}
+  <section class="grid two">
+    <SnapshotList
+      title="歐洲匯率"
+      subtitle="歐元與英鎊對美元的走勢"
+      items={euroForex}
     />
   </section>
+
+  {lineData.length > 0 && (
+    <section class="trend">
+      <SectionTitle title="指數動能追蹤" subtitle="以收盤價比較 STOXX 與 FTSE" />
+      <LineChart client:load data={lineData} xKey="日期" series={lineSeries} />
+    </section>
+  )}
 </BaseLayout>
+
+<style>
+.hero {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(12px);
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 2.25rem;
+}
+
+.hero p {
+  margin: 1rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.grid.two {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2.5rem;
+}
+
+.trend {
+  margin: 2.5rem 0;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 2rem;
+}
+</style>

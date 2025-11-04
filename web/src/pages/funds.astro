@@ -2,17 +2,91 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
+import SnapshotList from "../components/SnapshotList.astro";
 import BarChart from "../components/charts/BarChart";
 
 import marketData from "../data/market_data.json";
 import summary from "../data/summary.json";
 
-const fundFlows = Object.entries(marketData.funds ?? {}).map(([symbol, info]) => ({
-  代號: symbol,
-  名稱: info.name ?? symbol,
-  估算資金流: info.net_flow_estimate ?? 0,
-  成交量: info.volume ?? 0
-}));
+const millionFormatter = new Intl.NumberFormat("zh-Hant", {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1
+});
+
+const formatMillions = (value: number | null | undefined) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "—";
+  }
+  return millionFormatter.format(value / 1_000_000);
+};
+
+const fundEntries = Object.entries(marketData.funds ?? {})
+  .map(([symbol, info]) => ({
+    symbol,
+    name: info?.name ?? symbol,
+    netFlow: typeof info?.net_flow_estimate === "number" ? info.net_flow_estimate : null,
+    volume: typeof info?.volume === "number" ? info.volume : null
+  }))
+  .filter((item) => item.volume !== null || item.netFlow !== null);
+
+const totalVolume = fundEntries.reduce((acc, item) => acc + (item.volume ?? 0), 0);
+
+const fundSummary = (() => {
+  if (!fundEntries.length) {
+    return "尚未取得 ETF 資金流資料，請稍後再試。";
+  }
+  const sortedByVolume = [...fundEntries]
+    .filter((item) => typeof item.volume === "number")
+    .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+
+  if (!sortedByVolume.length) {
+    return "目前無成交量資料可供分析。";
+  }
+
+  const top = sortedByVolume[0];
+  const second = sortedByVolume[1];
+  const asiaFund = sortedByVolume.find((item) => item.symbol === "EWT");
+  const internationalFund = sortedByVolume.find((item) => item.symbol === "EFA");
+
+  const statements = [`成交量以 ${top.name}（${top.symbol}）最為活絡，達 ${formatMillions(top.volume)} 百萬股。`];
+  if (second) {
+    statements.push(`其次為 ${second.name}（${second.symbol}），成交量 ${formatMillions(second.volume)} 百萬股。`);
+  }
+  if (asiaFund) {
+    statements.push(`亞洲指數 ETF ${asiaFund.name}（${asiaFund.symbol}）維持 ${formatMillions(asiaFund.volume)} 百萬股的交投，反映資金持續關注台股。`);
+  }
+  if (internationalFund) {
+    statements.push(`歐日市場代表的 ${internationalFund.name} 量能為 ${formatMillions(internationalFund.volume)} 百萬股，顯示跨區資產配置需求穩定。`);
+  }
+
+  return statements.join(" ");
+})();
+
+const volumeChartData = fundEntries
+  .filter((item) => typeof item.volume === "number")
+  .map((item) => ({
+    名稱: `${item.name} (${item.symbol})`,
+    成交量百萬股: (item.volume ?? 0) / 1_000_000
+  }));
+
+const fundSnapshots = fundEntries
+  .map((item) => {
+    const volumeMillions = typeof item.volume === "number" ? item.volume / 1_000_000 : null;
+    const volumeShare = totalVolume > 0 && typeof item.volume === "number"
+      ? (item.volume / totalVolume) * 100
+      : null;
+    const secondary = typeof item.netFlow === "number"
+      ? `估算資金流 ${formatMillions(item.netFlow)} 百萬美元`
+      : undefined;
+    return {
+      name: item.name,
+      symbol: item.symbol,
+      price: volumeMillions,
+      changePct: volumeShare,
+      secondary
+    };
+  })
+  .sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
 ---
 
 <BaseLayout title="全球資金流向" current="funds">
@@ -22,28 +96,60 @@ const fundFlows = Object.entries(marketData.funds ?? {}).map(([symbol, info]) =>
   </div>
 
   <div class="grid two">
-    <MarketSummaryCard title="AI 資金觀察" description={summary.fund_flow} />
+    <MarketSummaryCard title="AI 資金觀察" description={fundSummary} />
+    <MarketSummaryCard title="全球資金敘事" description={summary.fund_flow} />
   </div>
 
-  <section>
-    <SectionTitle title="ETF 資金流向" subtitle="以資產規模與成交量評估資金動能" />
-    <BarChart
-      client:load
-      data={fundFlows}
-      xKey="名稱"
-      dataKey="估算資金流"
-      label="估算資金流"
-    />
-  </section>
+  {fundSnapshots.length > 0 && (
+    <section class="grid two">
+      <SnapshotList
+        title="主要 ETF 量能"
+        subtitle="成交量（百萬股）與量能占比"
+        items={fundSnapshots}
+      />
+    </section>
+  )}
 
-  <section>
-    <SectionTitle title="成交量熱度" subtitle="觀察 ETF 短期交投" />
-    <BarChart
-      client:load
-      data={fundFlows}
-      xKey="名稱"
-      dataKey="成交量"
-      label="成交量"
-    />
-  </section>
+  {volumeChartData.length > 0 && (
+    <section>
+      <SectionTitle title="量能對比" subtitle="以百萬股為單位的成交量排名" />
+      <BarChart
+        client:load
+        data={volumeChartData}
+        xKey="名稱"
+        dataKey="成交量百萬股"
+        label="成交量 (百萬股)"
+      />
+    </section>
+  )}
 </BaseLayout>
+
+<style>
+.hero {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(12px);
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 2.25rem;
+}
+
+.hero p {
+  margin: 1rem 0 0;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.grid.two {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2.5rem;
+}
+</style>
