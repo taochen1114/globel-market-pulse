@@ -5,7 +5,7 @@ import json
 import os
 import pathlib
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Dict
 
 import requests
@@ -40,6 +40,29 @@ def http_get_json(url: str, params: Dict[str, Any] | None = None) -> Dict[str, A
         raise DataFetchError(f"Failed to fetch data from {url}: {exc}") from exc
 
 
+def _json_default(value: Any) -> Any:
+    """Best-effort conversion for objects that ``json`` cannot serialize."""
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    isoformat = getattr(value, "isoformat", None)
+    if callable(isoformat):
+        try:
+            return isoformat()
+        except TypeError:
+            pass
+
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return item()
+        except (TypeError, ValueError):
+            pass
+
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
 def write_json(data: Any, path: pathlib.Path) -> None:
     """Write JSON content to a file with UTF-8 encoding.
 
@@ -50,7 +73,13 @@ def write_json(data: Any, path: pathlib.Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     sort_keys = isinstance(data, dict)
     path.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=sort_keys),
+        json.dumps(
+            data,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=sort_keys,
+            default=_json_default,
+        ),
         encoding="utf-8",
     )
 
