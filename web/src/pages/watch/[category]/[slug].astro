@@ -119,7 +119,7 @@ const performanceEntries =
         <span class="value">{formatPrice(asset.close ?? latest?.close ?? null)}</span>
       </div>
       <div class={`metric ${trend}`}>
-        <span class="label">日變動</span>
+        <span class="label">日漲跌幅</span>
         <span class="value">{formatChange(asset.daily_change_pct ?? latest?.change_pct ?? null)}</span>
       </div>
     </section>
