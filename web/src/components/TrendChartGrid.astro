@@ -1,0 +1,68 @@
+---
+import LineChart from "./charts/LineChart";
+
+interface TrendChartConfig {
+  title: string;
+  color: string;
+  data: Record<string, string | number | null>[];
+  valueKey: string;
+  valueLabel?: string;
+}
+
+const { charts, xKey = "日期" }: { charts: TrendChartConfig[]; xKey?: string } = Astro.props;
+---
+{charts.length ? (
+  <div class="trend-grid">
+    {charts.map(({ title, color, data, valueKey, valueLabel }) => (
+      <article class="chart-card" aria-label={`${title} 近期走勢`}>
+        <header class="chart-header">
+          <h3>{title}</h3>
+        </header>
+        <div class="chart-wrapper">
+          <LineChart
+            client:load
+            data={data}
+            xKey={xKey}
+            series={[{ dataKey: valueKey, color, name: valueLabel ?? title }]}
+            height={220}
+            showLegend={false}
+          />
+        </div>
+      </article>
+    ))}
+  </div>
+) : null}
+
+<style>
+.trend-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.chart-card {
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 1rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f8fafc;
+}
+
+.chart-wrapper {
+  height: 220px;
+}
+
+@media (max-width: 768px) {
+  .trend-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

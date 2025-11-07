@@ -3,7 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import PerformanceTable from "../components/PerformanceTable.astro";
-import LineChart from "../components/charts/LineChart";
+import TrendChartGrid from "../components/TrendChartGrid.astro";
 import SnapshotGrid from "../components/SnapshotGrid.astro";
 import SnapshotList from "../components/SnapshotList.astro";
 
@@ -75,21 +75,29 @@ const trendSymbols = [
 ];
 
 const marketHistory = marketsHistory as Record<string, { date: string; close: number | null }[]>;
-const timeline = (marketHistory[trendSymbols[0].slug] ?? []).map((entry) => entry.date);
-const globalLineData = timeline.map((date, index) => {
-  const row: Record<string, string | number | null> = { 日期: date };
-  trendSymbols.forEach(({ slug, label }) => {
-    const series = marketHistory[slug];
-    row[label] = series?.[index]?.close ?? null;
-  });
-  return row;
-});
-
-const lineSeries = trendSymbols.map(({ label }, idx) => ({
-  dataKey: label,
-  color: ["#38bdf8", "#fbbf24", "#34d399", "#f472b6", "#c084fc"][idx % 5],
-  name: label
-}));
+const trendPalette = ["#38bdf8", "#fbbf24", "#34d399", "#f472b6", "#c084fc"];
+const trendCharts = trendSymbols
+  .map(({ slug, label }, idx) => {
+    const series = marketHistory[slug] ?? [];
+    const data = series.map(({ date, close }) => ({ 日期: date, 收盤價: close ?? null }));
+    if (!data.length) {
+      return undefined;
+    }
+    return {
+      title: label,
+      color: trendPalette[idx % trendPalette.length],
+      data,
+      valueKey: "收盤價",
+      valueLabel: label
+    };
+  })
+  .filter(Boolean) as {
+  title: string;
+  color: string;
+  data: Record<string, string | number | null>[];
+  valueKey: string;
+  valueLabel: string;
+}[];
 
 const periodOrder = ["1m", "2m", "3m", "6m", "1y", "3y", "5y"];
 const performancePeriods = periodOrder
@@ -121,10 +129,12 @@ const performancePeriods = periodOrder
     items={highlightItems}
   />
 
-  <section class="trend">
-    <SectionTitle title="主要股市趨勢線" subtitle="透過最近幾個交易日的收盤價觀察動能" />
-    <LineChart client:load data={globalLineData} xKey="日期" series={lineSeries} />
-  </section>
+  {trendCharts.length > 0 && (
+    <section class="trend">
+      <SectionTitle title="主要股市趨勢線" subtitle="透過最近幾個交易日的收盤價觀察動能" />
+      <TrendChartGrid charts={trendCharts} xKey="日期" />
+    </section>
+  )}
 
   <section class="grid two">
     <SnapshotList
