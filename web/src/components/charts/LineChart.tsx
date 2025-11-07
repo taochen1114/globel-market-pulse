@@ -11,17 +11,19 @@ export interface LineChartProps {
   data: Record<string, string | number | null>[];
   xKey: string;
   series: SeriesConfig[];
+  height?: number;
+  showLegend?: boolean;
 }
 
-const LineChart: FC<LineChartProps> = ({ data, xKey, series }) => {
+const LineChart: FC<LineChartProps> = ({ data, xKey, series, height = 320, showLegend = true }) => {
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={height}>
       <RechartsLineChart data={data} margin={{ top: 16, right: 16, bottom: 8, left: 0 }}>
         <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.2)" />
         <XAxis dataKey={xKey} stroke="#94a3b8" tickLine={false} axisLine={false} />
         <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
         <Tooltip contentStyle={{ background: "#0f172a", borderRadius: 12, border: "1px solid rgba(148,163,184,0.2)", color: "#e2e8f0" }} />
-        <Legend />
+        {showLegend && <Legend />}
         {series.map(({ dataKey, color, name }) => (
           <Line key={dataKey} type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.4} dot={false} name={name} />
         ))}

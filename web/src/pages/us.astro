@@ -3,7 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import SectionTitle from "../components/SectionTitle.astro";
 import MarketSummaryCard from "../components/MarketSummaryCard.astro";
 import SnapshotList from "../components/SnapshotList.astro";
-import LineChart from "../components/charts/LineChart";
+import TrendChartGrid from "../components/TrendChartGrid.astro";
 import BarChart from "../components/charts/BarChart";
 
 import marketData from "../data/market_data.json";
@@ -108,20 +108,29 @@ const seriesConfig = equitySymbols
   })
   .filter(Boolean) as { slug: string; label: string }[];
 
-const timeline = seriesConfig.length ? (history[seriesConfig[0].slug] ?? []).map((entry) => entry.date) : [];
-const lineData = timeline.map((date, index) => {
-  const row: Record<string, string | number | null> = { 日期: date };
-  seriesConfig.forEach(({ slug, label }) => {
-    row[label] = history[slug]?.[index]?.close ?? null;
-  });
-  return row;
-});
-
-const lineSeries = seriesConfig.map(({ label }, idx) => ({
-  dataKey: label,
-  color: ["#38bdf8", "#fbbf24", "#34d399"][idx % 3],
-  name: label
-}));
+const trendPalette = ["#38bdf8", "#fbbf24", "#34d399"];
+const trendCharts = seriesConfig
+  .map(({ slug, label }, idx) => {
+    const series = history[slug] ?? [];
+    const data = series.map(({ date, close }) => ({ 日期: date, 收盤價: close ?? null }));
+    if (!data.length) {
+      return undefined;
+    }
+    return {
+      title: label,
+      color: trendPalette[idx % trendPalette.length],
+      data,
+      valueKey: "收盤價",
+      valueLabel: label
+    };
+  })
+  .filter(Boolean) as {
+  title: string;
+  color: string;
+  data: Record<string, string | number | null>[];
+  valueKey: string;
+  valueLabel: string;
+}[];
 ---
 
 <BaseLayout title="美國市場解析" current="us">
@@ -148,10 +157,10 @@ const lineSeries = seriesConfig.map(({ label }, idx) => ({
     />
   </section>
 
-  {lineData.length > 0 && (
+  {trendCharts.length > 0 && (
     <section class="trend">
       <SectionTitle title="近期走勢對比" subtitle="觀察主要指數的短期動能" />
-      <LineChart client:load data={lineData} xKey="日期" series={lineSeries} />
+      <TrendChartGrid charts={trendCharts} xKey="日期" />
     </section>
   )}
 
