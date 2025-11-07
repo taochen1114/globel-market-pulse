@@ -48,23 +48,32 @@ function formatChange(value: SnapshotItem["changePct"]) {
   </div>
   <div class="grid">
     {items.map((item) => {
-      const trend = typeof item.changePct === "number" ? (item.changePct > 0 ? "up" : item.changePct < 0 ? "down" : "neutral") : "neutral";
-      const content = (
-        <div class="card" aria-live="polite">
+      const trend =
+        typeof item.changePct === "number"
+          ? item.changePct > 0
+            ? "up"
+            : item.changePct < 0
+              ? "down"
+              : "neutral"
+          : "neutral";
+
+      return (
+        <div class={`card${item.link ? " has-link" : ""}`} role="group" aria-live="polite">
           <div class="label">{item.label}</div>
           <div class="price">{formatPrice(item.price)}</div>
           <div class={`change ${trend}`}>{formatChange(item.changePct)}</div>
           <div class="meta">
-            <span class="name">{item.name}</span>
+            {item.link ? (
+              <a class="name-link" href={item.link}>
+                <span class="name">{item.name}</span>
+              </a>
+            ) : (
+              <span class="name">{item.name}</span>
+            )}
             <span class="symbol">{item.symbol}</span>
             {item.secondary && <span class="extra">{item.secondary}</span>}
           </div>
         </div>
-      );
-      return item.link ? (
-        <a class="card-link" href={item.link}>{content}</a>
-      ) : (
-        <div class="card-link" role="group">{content}</div>
       );
     })}
   </div>
@@ -100,12 +109,6 @@ function formatChange(value: SnapshotItem["changePct"]) {
   gap: 1rem;
 }
 
-.card-link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
 .card {
   background: rgba(15, 23, 42, 0.75);
   border-radius: 18px;
@@ -116,10 +119,11 @@ function formatChange(value: SnapshotItem["changePct"]) {
   gap: 0.65rem;
   min-height: 150px;
   transition: border-color 0.2s ease, transform 0.2s ease;
+  color: inherit;
 }
 
-.card-link:hover .card,
-.card-link:focus-visible .card {
+.card.has-link:hover,
+.card.has-link:focus-within {
   border-color: #38bdf8;
   transform: translateY(-2px);
   outline: none;
@@ -166,6 +170,19 @@ function formatChange(value: SnapshotItem["changePct"]) {
 .meta .name {
   color: #f1f5f9;
   font-weight: 500;
+}
+
+.meta .name-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+}
+
+.meta .name-link:hover .name,
+.meta .name-link:focus-visible .name {
+  color: #38bdf8;
+  text-decoration: underline;
+  outline: none;
 }
 
 .meta .symbol {

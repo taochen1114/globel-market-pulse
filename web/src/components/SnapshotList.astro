@@ -46,31 +46,34 @@ function formatChange(value: SnapshotItem["changePct"]) {
   </div>
   <ul>
     {items.map((item) => {
-      const trend = typeof item.changePct === "number" ? (item.changePct > 0 ? "up" : item.changePct < 0 ? "down" : "neutral") : "neutral";
-      const content = (
-        <>
-          <div class="info">
-            <span class="name">{item.name}</span>
-            <span class="symbol">{item.symbol}</span>
-            {item.secondary && <span class="secondary">{item.secondary}</span>}
-          </div>
-          <div class="value">
-            <span class="price">{formatPrice(item.price)}</span>
-            <span class={`change ${trend}`}>{formatChange(item.changePct)}</span>
-          </div>
-        </>
-      );
+      const trend =
+        typeof item.changePct === "number"
+          ? item.changePct > 0
+            ? "up"
+            : item.changePct < 0
+              ? "down"
+              : "neutral"
+          : "neutral";
+
       return (
         <li>
-          {item.link ? (
-            <a class="row" href={item.link}>
-              {content}
-            </a>
-          ) : (
-            <div class="row" role="group">
-              {content}
+          <div class={`row${item.link ? " has-link" : ""}`} role="group">
+            <div class="info">
+              {item.link ? (
+                <a class="name-link" href={item.link}>
+                  <span class="name">{item.name}</span>
+                </a>
+              ) : (
+                <span class="name">{item.name}</span>
+              )}
+              <span class="symbol">{item.symbol}</span>
+              {item.secondary && <span class="secondary">{item.secondary}</span>}
             </div>
-          )}
+            <div class="value">
+              <span class="price">{formatPrice(item.price)}</span>
+              <span class={`change ${trend}`}>{formatChange(item.changePct)}</span>
+            </div>
+          </div>
         </li>
       );
     })}
@@ -122,13 +125,12 @@ li {
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.14);
-  text-decoration: none;
   color: inherit;
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.row:hover,
-.row:focus-visible {
+.row.has-link:hover,
+.row.has-link:focus-within {
   border-color: #38bdf8;
   transform: translateX(2px);
   outline: none;
@@ -143,6 +145,20 @@ li {
 .info .name {
   color: #f8fafc;
   font-weight: 600;
+}
+
+.info .name-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info .name-link:hover .name,
+.info .name-link:focus-visible .name {
+  color: #38bdf8;
+  text-decoration: underline;
+  outline: none;
 }
 
 .info .symbol,
