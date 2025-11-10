@@ -23,6 +23,18 @@ if tw_now.weekday() >= 5:
     print(f"[SKIP] Weekend {tw_now.strftime('%Y-%m-%d %H:%M:%S')} (TW) → market closed, skip workflow.")
     sys.exit(78)   # ← neutral exit, stops the rest of GitHub Actions steps
 
+# global holidays skip
+HOLIDAYS = {
+    "2025-12-25",
+    "2026-01-01",
+}
+
+today_str = tw_now.strftime("%Y-%m-%d")
+
+if today_str in HOLIDAYS:
+    print(f"[SKIP] Global holiday ({today_str}) → skip workflow.")
+    sys.exit(78)
+    
 # --- end skip logic ---
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
