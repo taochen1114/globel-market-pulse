@@ -10,6 +10,20 @@ import pandas as pd
 import yfinance as yf
 
 from utils import DATA_DIR, sync_history, sync_output, today_iso
+# --- auto skip logic: weekend / no market day ---
+
+import datetime
+import sys
+
+# Taiwan timezone (UTC+8)
+tw_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+
+# Monday = 0, Tue=1 ... Sat=5, Sun=6
+if tw_now.weekday() >= 5:
+    print(f"[SKIP] Weekend {tw_now.strftime('%Y-%m-%d %H:%M:%S')} (TW) → market closed, skip workflow.")
+    sys.exit(78)   # ← neutral exit, stops the rest of GitHub Actions steps
+
+# --- end skip logic ---
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
