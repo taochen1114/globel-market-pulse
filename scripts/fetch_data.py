@@ -16,7 +16,7 @@ import datetime
 import sys
 
 # Taiwan timezone (UTC+8)
-tw_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+tw_now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
 
 # Monday = 0, Tue=1 ... Sat=5, Sun=6
 if tw_now.weekday() >= 5:
@@ -408,15 +408,16 @@ def _first_available_close(symbols: list[str]) -> tuple[Optional[float], Optiona
 
 def fetch_rates() -> Dict[str, Optional[float]]:
     candidates = {
-        "2Y": ["^UST2Y", "^US2Y"],
-        "10Y": ["^TNX", "^US10Y"],
+        "2Y": ["TMUBMUSD02Y", "^UST2Y", "^US2Y"],
+        "10Y": ["TMUBMUSD10Y", "^TNX", "^US10Y"],
     }
     rates: Dict[str, Optional[float]] = {}
     for label, symbols in candidates.items():
         value, symbol = _first_available_close(symbols)
-        if value is not None and label == "10Y" and symbol == "^TNX":
-            # Yahoo Finance stores the 10Y yield as percentage * 10 for ^TNX.
-            value = round(value / 10, 4)
+        if value is not None and label == "10Y":
+            if symbol == "^TNX":
+                # Yahoo Finance stores the 10Y yield as percentage * 10 for ^TNX.
+                value = round(value / 10, 4)
         rates[label] = value
     return rates
 
