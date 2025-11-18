@@ -408,16 +408,22 @@ def _first_available_close(symbols: list[str]) -> tuple[Optional[float], Optiona
 
 def fetch_rates() -> Dict[str, Optional[float]]:
     candidates = {
-        "2Y": ["TMUBMUSD02Y", "^UST2Y", "^US2Y"],
-        "10Y": ["TMUBMUSD10Y", "^TNX", "^US10Y"],
+        # Yahoo's ^IRX quotes the 13-week T-bill rate (scaled by 10); used as a stable
+        # proxy for the front end to avoid delisted 2Y tickers.
+        "2Y": ["^IRX", "ZT=F"],
+        # ^TNX is the most reliable 10Y yield ticker; keep other options as fallback.
+        "10Y": ["^TNX", "^US10Y", "TMUBMUSD10Y"],
     }
+
+    # Some Yahoo Finance rate tickers are quoted as percentage * 10 (e.g., ^TNX, ^IRX).
+    # Normalize these to human-readable percentages.
+    scale_by_ten = {"^TNX", "^IRX"}
+
     rates: Dict[str, Optional[float]] = {}
     for label, symbols in candidates.items():
         value, symbol = _first_available_close(symbols)
-        if value is not None and label == "10Y":
-            if symbol == "^TNX":
-                # Yahoo Finance stores the 10Y yield as percentage * 10 for ^TNX.
-                value = round(value / 10, 4)
+        if value is not None and symbol in scale_by_ten:
+            value = round(value / 10, 4)
         rates[label] = value
     return rates
 
